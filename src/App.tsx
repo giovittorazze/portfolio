@@ -12,7 +12,6 @@ import Iemanja from "./assets/img/iemanja.jpeg"
 import MariaMadalena from "./assets/img/mariamadalena.jpeg"
 import Oxum from "./assets/img/oxum.jpeg"
 
-// Interface para estruturar os comentários
 interface Comentario {
   id: string | number;
   arte_id: string;
@@ -22,7 +21,6 @@ interface Comentario {
   data: string;
 }
 
-// Interface para as artes
 interface Arte {
   id: string;
   src: string;
@@ -31,7 +29,6 @@ interface Arte {
   vendido: boolean;
 }
 
-// Lista de obras
 const galeriaArtes: Arte[] = [
   { 
     id: 'cavalo', 
@@ -88,27 +85,28 @@ function App() {
   const [imagemSelecionada, setImagemSelecionada] = useState<Arte | null>(null);
   const [filtroAtivo, setFiltroAtivo] = useState<'todos' | 'mandalas' | 'desenhos'>('todos');
 
-  // Estados vindos do Supabase
   const [likes, setLikes] = useState<{ [key: string]: number }>({});
   const [userLikes, setUserLikes] = useState<string[]>(() => {
-    // Guarda localmente apenas quais artes este aparelho já curtiu
     const salvos = localStorage.getItem('giovanni_artes_user_likes');
     return salvos ? JSON.parse(salvos) : [];
   });
   const [comentarios, setComentarios] = useState<{ [key: string]: Comentario[] }>({});
 
-  // Estados locais para o formulário de novo comentário
+  // Lista dos IDs dos comentários feitos por ESTE usuário no aparelho dele
+  const [meusComentariosIds, setMeusComentariosIds] = useState<(string | number)[]>(() => {
+    const salvos = localStorage.getItem('giovanni_meus_comentarios_ids');
+    return salvos ? JSON.parse(salvos) : [];
+  });
+
   const [novoNome, setNovoNome] = useState('');
   const [novoEmail, setNovoEmail] = useState('');
   const [novoTexto, setNovoTexto] = useState('');
 
-  // Carregar curtidas e comentários do Supabase ao iniciar o site
   useEffect(() => {
     async function carregarDadosDoBanco() {
       try {
-        // 1. Buscar Likes
-        const { data: likesData, error: likesError } = await supabase.from('artes_likes').select('*');
-        if (!likesError && likesData) {
+        const { data: likesData } = await supabase.from('artes_likes').select('*');
+        if (likesData) {
           const likesObj: { [key: string]: number } = {};
           likesData.forEach((item: any) => {
             likesObj[item.id] = item.likes_count;
@@ -116,9 +114,8 @@ function App() {
           setLikes(likesObj);
         }
 
-        // 2. Buscar Comentários
-        const { data: comentsData, error: comentsError } = await supabase.from('artes_comentarios').select('*');
-        if (!comentsError && comentsData) {
+        const { data: comentsData } = await supabase.from('artes_comentarios').select('*');
+        if (comentsData) {
           const comentsObj: { [key: string]: Comentario[] } = {};
           comentsData.forEach((c: Comentario) => {
             if (!comentsObj[c.arte_id]) {
@@ -136,12 +133,14 @@ function App() {
     carregarDadosDoBanco();
   }, []);
 
-  // Salvar quais artes o usuário curtiu no localStorage do aparelho dele
   useEffect(() => {
     localStorage.setItem('giovanni_artes_user_likes', JSON.stringify(userLikes));
   }, [userLikes]);
 
-  // Função para curtir/descurtir sincronizada com o Supabase
+  useEffect(() => {
+    localStorage.setItem('giovanni_meus_comentarios_ids', JSON.stringify(meusComentariosIds));
+  }, [meusComentariosIds]);
+
   const toggleCurtir = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
 
@@ -149,7 +148,6 @@ function App() {
     const atualLikes = likes[id] || 0;
     let novoTotal = jaCurtiu ? Math.max(0, atualLikes - 1) : atualLikes + 1;
 
-    // Atualiza o estado visual instantaneamente
     if (jaCurtiu) {
       setUserLikes(userLikes.filter(item => item !== id));
     } else {
@@ -158,19 +156,15 @@ function App() {
 
     setLikes(prev => ({ ...prev, [id]: novoTotal }));
 
-    // Atualiza no banco de dados do Supabase
     try {
-      const { error } = await supabase
+      await supabase
         .from('artes_likes')
         .upsert({ id: id, likes_count: novoTotal }, { onConflict: 'id' });
-
-      if (error) console.error('Erro ao atualizar like no Supabase:', error);
     } catch (err) {
       console.error('Erro de conexão:', err);
     }
   };
 
-  // Adicionar comentário enviando para o Supabase
   const handleAdicionarComentario = async (id: string, e: React.FormEvent) => {
     e.preventDefault();
     if (!novoNome.trim() || !novoEmail.trim() || !novoTexto.trim()) return;
@@ -196,18 +190,46 @@ function App() {
           [id]: [...(prev[id] || []), comentarioCriado]
         }));
 
+        // Guarda o ID do comentário recém-criado para permitir a exclusão apenas por este usuário
+        setMeusComentariosIds(prev => [...prev, comentarioCriado.id]);
+
         setNovoNome('');
         setNovoEmail('');
         setNovoTexto('');
-      } else {
-        console.error('Erro ao salvar comentário:', error);
       }
     } catch (err) {
       console.error('Erro de conexão ao comentar:', err);
     }
   };
 
-  // Ao carregar o site, verifica se há um parâmetro na URL para abrir direto a arte
+  // Função para deletar o comentário no banco de dados e na tela
+  const handleDeletarComentario = async (arteId: string, comentarioId: string | number) => {
+    const confirmar = window.confirm('Tem certeza de que deseja apagar o seu comentário?');
+    if (!confirmar) return;
+
+    try {
+      const { error } = await supabase
+        .from('artes_comentarios')
+        .delete()
+        .eq('id', comentarioId);
+
+      if (!error) {
+        // Remove o comentário da tela
+        setComentarios(prev => ({
+          ...prev,
+          [arteId]: (prev[arteId] || []).filter(c => c.id !== comentarioId)
+        }));
+
+        // Remove do histórico de IDs do usuário local
+        setMeusComentariosIds(prev => prev.filter(id => id !== comentarioId));
+      } else {
+        alert('Erro ao apagar o comentário. Tente novamente.');
+      }
+    } catch (err) {
+      console.error('Erro ao deletar comentário:', err);
+    }
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const obraId = params.get('obra');
@@ -249,18 +271,12 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Menu Fixo Superior */}
       <header className="fixed top-0 left-0 w-full h-20 bg-gradient-to-r from-violet-500 to-cyan-500 flex items-center pl-6 sm:pl-10 shadow-lg z-40 text-white font-['amoresa'] text-2xl sm:text-3xl">
         Giovanni Vittorazze
       </header>
 
-      {/* Container Principal */}
       <div className="flex flex-col lg:flex-row pt-20 min-h-screen">
-        
-        {/* Galeria de Artes */}
         <main className="flex-1 p-4 sm:p-6 flex flex-col gap-6 lg:mr-80">
-          
-          {/* Botões de Filtro */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
             <span className="text-xs font-bold text-gray-500 mr-1 uppercase tracking-wider">Filtrar:</span>
             <button
@@ -289,7 +305,6 @@ function App() {
             </button>
           </div>
 
-          {/* Grid de Artes */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {artesFiltradas.length === 0 ? (
               <p className="text-sm text-gray-500 italic col-span-full py-10 text-center">Nenhuma arte encontrada nesta categoria.</p>
@@ -324,7 +339,6 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Barra de Curtidas no Card */}
                     <div className="px-4 py-3 bg-white flex items-center justify-between border-t border-gray-200">
                       <span className="text-sm font-bold text-gray-800">{arte.alt}</span>
                       <div className="flex items-center gap-2">
@@ -353,7 +367,6 @@ function App() {
           </div>
         </main>
 
-        {/* Barra Lateral / Contato */}
         <aside className="w-full lg:w-80 bg-[#d9d9d9] p-6 flex flex-col text-gray-800 shadow-lg lg:fixed lg:right-0 lg:top-20 lg:h-[calc(100vh-5rem)] lg:overflow-y-auto">
           <div className="flex items-center gap-3 mb-4">
             <img className="rounded-full w-16 h-16 object-cover shadow" src={Giovanni} alt="Giovanni" />
@@ -390,7 +403,6 @@ function App() {
         </aside>
       </div>
 
-      {/* Modal / Pop-up */}
       {imagemSelecionada && (() => {
         const jaCurtiuModal = userLikes.includes(imagemSelecionada.id);
         const listaComentarios = comentarios[imagemSelecionada.id] || [];
@@ -424,7 +436,6 @@ function App() {
                   />
                 </div>
                 
-                {/* Detalhes da Obra */}
                 <div className="p-4 bg-white flex flex-col gap-3 border-b">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-gray-800 text-base">{imagemSelecionada.alt}</span>
@@ -451,7 +462,6 @@ function App() {
                   </button>
                 </div>
 
-                {/* Seção de Comentários */}
                 <div className="p-4 bg-gray-50 flex flex-col gap-4">
                   <h3 className="font-bold text-gray-800 text-sm">Comentários ({listaComentarios.length})</h3>
 
@@ -459,15 +469,33 @@ function App() {
                     {listaComentarios.length === 0 ? (
                       <p className="text-xs text-gray-500 italic">Nenhum comentário ainda. Seja o primeiro a comentar!</p>
                     ) : (
-                      listaComentarios.map((c) => (
-                        <div key={c.id} className="bg-white p-3 rounded border border-gray-200 text-xs flex flex-col gap-1 shadow-xs">
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-gray-900">{c.nome}</span>
-                            <span className="text-[10px] text-gray-400">{c.data}</span>
+                      listaComentarios.map((c) => {
+                        // Verifica se este comentário foi escrito por ESTE aparelho/usuário
+                        const souDonoDoComentario = meusComentariosIds.includes(c.id);
+
+                        return (
+                          <div key={c.id} className="bg-white p-3 rounded border border-gray-200 text-xs flex flex-col gap-1 shadow-xs relative">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-gray-900">{c.nome}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-gray-400">{c.data}</span>
+                                
+                                {/* O botão de deletar só é visível para o criador do comentário */}
+                                {souDonoDoComentario && (
+                                  <button
+                                    onClick={() => handleDeletarComentario(imagemSelecionada.id, c.id)}
+                                    className="text-red-500 hover:text-red-700 text-xs font-bold ml-1 cursor-pointer"
+                                    title="Apagar meu comentário"
+                                  >
+                                    🗑️ Deletar
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-gray-700">{c.texto}</p>
                           </div>
-                          <p className="text-gray-700">{c.texto}</p>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
 
