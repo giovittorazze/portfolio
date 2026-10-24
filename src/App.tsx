@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import { supabase } from './supabaseClient'
 
 import Giovanni from "./assets/img/foto.jpg"
 
@@ -13,7 +14,8 @@ import Oxum from "./assets/img/oxum.jpeg"
 
 // Interface para estruturar os comentários
 interface Comentario {
-  id: string;
+  id: string | number;
+  arte_id: string;
   nome: string;
   email: string;
   texto: string;
@@ -84,41 +86,126 @@ const galeriaArtes: Arte[] = [
 
 function App() {
   const [imagemSelecionada, setImagemSelecionada] = useState<Arte | null>(null);
-  
-  // Estado para controlar o filtro ativo ('todos', 'mandalas', 'desenhos')
   const [filtroAtivo, setFiltroAtivo] = useState<'todos' | 'mandalas' | 'desenhos'>('todos');
 
-  // Contador total de curtidas de cada arte
-  const [likes, setLikes] = useState<{ [key: string]: number }>(() => {
-    const salvos = localStorage.getItem('giovanni_artes_likes');
-    if (salvos) {
-      try { return JSON.parse(salvos); } catch { return {}; }
-    }
-    return {};
-  });
-
-  // Lista de IDs das artes que ESTE aparelho já curtiu
+  // Estados vindos do Supabase
+  const [likes, setLikes] = useState<{ [key: string]: number }>({});
   const [userLikes, setUserLikes] = useState<string[]>(() => {
+    // Guarda localmente apenas quais artes este aparelho já curtiu
     const salvos = localStorage.getItem('giovanni_artes_user_likes');
-    if (salvos) {
-      try { return JSON.parse(salvos); } catch { return []; }
-    }
-    return [];
+    return salvos ? JSON.parse(salvos) : [];
   });
+  const [comentarios, setComentarios] = useState<{ [key: string]: Comentario[] }>({});
 
-  // Estado para armazenar os comentários de cada obra
-  const [comentarios, setComentarios] = useState<{ [key: string]: Comentario[] }>(() => {
-    const salvos = localStorage.getItem('giovanni_artes_comentarios');
-    if (salvos) {
-      try { return JSON.parse(salvos); } catch { return {}; }
-    }
-    return {};
-  });
-
-  // Estados locais para o formulário de novo comentário dentro do modal
+  // Estados locais para o formulário de novo comentário
   const [novoNome, setNovoNome] = useState('');
   const [novoEmail, setNovoEmail] = useState('');
   const [novoTexto, setNovoTexto] = useState('');
+
+  // Carregar curtidas e comentários do Supabase ao iniciar o site
+  useEffect(() => {
+    async function carregarDadosDoBanco() {
+      try {
+        // 1. Buscar Likes
+        const { data: likesData, error: likesError } = await supabase.from('artes_likes').select('*');
+        if (!likesError && likesData) {
+          const likesObj: { [key: string]: number } = {};
+          likesData.forEach((item: any) => {
+            likesObj[item.id] = item.likes_count;
+          });
+          setLikes(likesObj);
+        }
+
+        // 2. Buscar Comentários
+        const { data: comentsData, error: comentsError } = await supabase.from('artes_comentarios').select('*');
+        if (!comentsError && comentsData) {
+          const comentsObj: { [key: string]: Comentario[] } = {};
+          comentsData.forEach((c: Comentario) => {
+            if (!comentsObj[c.arte_id]) {
+              comentsObj[c.arte_id] = [];
+            }
+            comentsObj[c.arte_id].push(c);
+          });
+          setComentarios(comentsObj);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar dados do Supabase:', err);
+      }
+    }
+
+    carregarDadosDoBanco();
+  }, []);
+
+  // Salvar quais artes o usuário curtiu no localStorage do aparelho dele
+  useEffect(() => {
+    localStorage.setItem('giovanni_artes_user_likes', JSON.stringify(userLikes));
+  }, [userLikes]);
+
+  // Função para curtir/descurtir sincronizada com o Supabase
+  const toggleCurtir = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+
+    const jaCurtiu = userLikes.includes(id);
+    const atualLikes = likes[id] || 0;
+    let novoTotal = jaCurtiu ? Math.max(0, atualLikes - 1) : atualLikes + 1;
+
+    // Atualiza o estado visual instantaneamente
+    if (jaCurtiu) {
+      setUserLikes(userLikes.filter(item => item !== id));
+    } else {
+      setUserLikes([...userLikes, id]);
+    }
+
+    setLikes(prev => ({ ...prev, [id]: novoTotal }));
+
+    // Atualiza no banco de dados do Supabase
+    try {
+      const { error } = await supabase
+        .from('artes_likes')
+        .upsert({ id: id, likes_count: novoTotal }, { onConflict: 'id' });
+
+      if (error) console.error('Erro ao atualizar like no Supabase:', error);
+    } catch (err) {
+      console.error('Erro de conexão:', err);
+    }
+  };
+
+  // Adicionar comentário enviando para o Supabase
+  const handleAdicionarComentario = async (id: string, e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoNome.trim() || !novoEmail.trim() || !novoTexto.trim()) return;
+
+    const novoComentarioParaBanco = {
+      arte_id: id,
+      nome: novoNome.trim(),
+      email: novoEmail.trim(),
+      texto: novoTexto.trim(),
+      data: new Date().toLocaleDateString('pt-BR')
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('artes_comentarios')
+        .insert([novoComentarioParaBanco])
+        .select();
+
+      if (!error && data) {
+        const comentarioCriado = data[0];
+        setComentarios(prev => ({
+          ...prev,
+          [id]: [...(prev[id] || []), comentarioCriado]
+        }));
+
+        setNovoNome('');
+        setNovoEmail('');
+        setNovoTexto('');
+      } else {
+        console.error('Erro ao salvar comentário:', error);
+      }
+    } catch (err) {
+      console.error('Erro de conexão ao comentar:', err);
+    }
+  };
 
   // Ao carregar o site, verifica se há um parâmetro na URL para abrir direto a arte
   useEffect(() => {
@@ -131,60 +218,6 @@ function App() {
       }
     }
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('giovanni_artes_likes', JSON.stringify(likes));
-  }, [likes]);
-
-  useEffect(() => {
-    localStorage.setItem('giovanni_artes_user_likes', JSON.stringify(userLikes));
-  }, [userLikes]);
-
-  useEffect(() => {
-    localStorage.setItem('giovanni_artes_comentarios', JSON.stringify(comentarios));
-  }, [comentarios]);
-
-  const toggleCurtir = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-
-    const jaCurtiu = userLikes.includes(id);
-
-    if (jaCurtiu) {
-      setUserLikes(userLikes.filter(item => item !== id));
-      setLikes(prev => ({
-        ...prev,
-        [id]: Math.max(0, (prev[id] || 0) - 1)
-      }));
-    } else {
-      setUserLikes([...userLikes, id]);
-      setLikes(prev => ({
-        ...prev,
-        [id]: (prev[id] || 0) + 1
-      }));
-    }
-  };
-
-  const handleAdicionarComentario = (id: string, e: React.FormEvent) => {
-    e.preventDefault();
-    if (!novoNome.trim() || !novoEmail.trim() || !novoTexto.trim()) return;
-
-    const novoComentario: Comentario = {
-      id: Date.now().toString(),
-      nome: novoNome.trim(),
-      email: novoEmail.trim(),
-      texto: novoTexto.trim(),
-      data: new Date().toLocaleDateString('pt-BR')
-    };
-
-    setComentarios(prev => ({
-      ...prev,
-      [id]: [...(prev[id] || []), novoComentario]
-    }));
-
-    setNovoNome('');
-    setNovoEmail('');
-    setNovoTexto('');
-  };
 
   const fecharModal = () => {
     setImagemSelecionada(null);
@@ -203,16 +236,15 @@ function App() {
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(textoCompartilhamento);
-      alert(`Link direto da obra "${arte.alt}" e créditos copiados para a área de transferência!`);
+      alert(`Link direto da obra "${arte.alt}" copiado para a área de transferência!`);
     }
   };
 
-  // Lógica de filtragem das artes com base no botão selecionado
   const artesFiltradas = galeriaArtes.filter((arte) => {
     const ehMandala = arte.alt.toLowerCase().includes('mandala');
     if (filtroAtivo === 'mandalas') return ehMandala;
     if (filtroAtivo === 'desenhos') return !ehMandala;
-    return true; // 'todos'
+    return true;
   });
 
   return (
@@ -225,7 +257,7 @@ function App() {
       {/* Container Principal */}
       <div className="flex flex-col lg:flex-row pt-20 min-h-screen">
         
-        {/* Galeria de Artes (Centro) */}
+        {/* Galeria de Artes */}
         <main className="flex-1 p-4 sm:p-6 flex flex-col gap-6 lg:mr-80">
           
           {/* Botões de Filtro */}
@@ -234,9 +266,7 @@ function App() {
             <button
               onClick={() => setFiltroAtivo('todos')}
               className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
-                filtroAtivo === 'todos'
-                  ? 'bg-violet-600 text-white shadow'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                filtroAtivo === 'todos' ? 'bg-violet-600 text-white shadow' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               Todos
@@ -244,9 +274,7 @@ function App() {
             <button
               onClick={() => setFiltroAtivo('mandalas')}
               className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
-                filtroAtivo === 'mandalas'
-                  ? 'bg-violet-600 text-white shadow'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                filtroAtivo === 'mandalas' ? 'bg-violet-600 text-white shadow' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               Mandalas
@@ -254,9 +282,7 @@ function App() {
             <button
               onClick={() => setFiltroAtivo('desenhos')}
               className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
-                filtroAtivo === 'desenhos'
-                  ? 'bg-violet-600 text-white shadow'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                filtroAtivo === 'desenhos' ? 'bg-violet-600 text-white shadow' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               Desenhos
@@ -306,9 +332,7 @@ function App() {
                         <button 
                           onClick={(e) => toggleCurtir(arte.id, e)}
                           className={`flex items-center gap-1.5 px-3 py-1 rounded-full transition text-sm font-semibold cursor-pointer active:scale-95 ${
-                            jaCurtiu 
-                              ? 'bg-red-600 text-white shadow-inner' 
-                              : 'bg-red-50 text-red-600 hover:bg-red-100'
+                            jaCurtiu ? 'bg-red-600 text-white shadow-inner' : 'bg-red-50 text-red-600 hover:bg-red-100'
                           }`}
                         >
                           <span>{jaCurtiu ? '❤️' : '🤍'}</span>
@@ -317,7 +341,6 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Descrição Breve */}
                     <div className="px-4 pb-3 bg-white">
                       <p className="text-xs text-gray-600 line-clamp-2 w-full">
                         {arte.descricao}
@@ -330,7 +353,7 @@ function App() {
           </div>
         </main>
 
-        {/* Barra Lateral / Contato (Direita) */}
+        {/* Barra Lateral / Contato */}
         <aside className="w-full lg:w-80 bg-[#d9d9d9] p-6 flex flex-col text-gray-800 shadow-lg lg:fixed lg:right-0 lg:top-20 lg:h-[calc(100vh-5rem)] lg:overflow-y-auto">
           <div className="flex items-center gap-3 mb-4">
             <img className="rounded-full w-16 h-16 object-cover shadow" src={Giovanni} alt="Giovanni" />
@@ -367,7 +390,7 @@ function App() {
         </aside>
       </div>
 
-      {/* Pop-up / Modal */}
+      {/* Modal / Pop-up */}
       {imagemSelecionada && (() => {
         const jaCurtiuModal = userLikes.includes(imagemSelecionada.id);
         const listaComentarios = comentarios[imagemSelecionada.id] || [];
@@ -408,9 +431,7 @@ function App() {
                     <button 
                       onClick={() => toggleCurtir(imagemSelecionada.id)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition font-bold cursor-pointer active:scale-95 ${
-                        jaCurtiuModal 
-                          ? 'bg-red-600 text-white shadow-inner' 
-                          : 'bg-red-50 text-red-600 hover:bg-red-100'
+                        jaCurtiuModal ? 'bg-red-600 text-white shadow-inner' : 'bg-red-50 text-red-600 hover:bg-red-100'
                       }`}
                     >
                       <span className="text-lg">{jaCurtiuModal ? '❤️' : '🤍'}</span>
