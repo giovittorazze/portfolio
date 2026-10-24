@@ -192,7 +192,7 @@ function App() {
   };
 
   const compartilharArte = (arte: Arte) => {
-    const linkEspecifico = `https://giovanni.com/?obra=${arte.id}`;
+    const linkEspecifico = `https://giovittorazze.github.io/portfolio/?obra=${arte.id}`;
     const textoCompartilhamento = `🎨 Confira a obra "${arte.alt}" de Giovanni Vittorazze!\n\n"${arte.descricao}"\n\nVeja os detalhes e deixe seu comentário aqui: ${linkEspecifico}`;
 
     if (navigator.share) {
