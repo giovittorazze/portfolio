@@ -56,28 +56,28 @@ const galeriaArtes: Arte[] = [
     id: 'nsaparecida', 
     src: NSAparecida, 
     alt: 'Mandala - Nossa Senhora Aparecida 80x80cm', 
-    descricao: 'Mandala sacra dedicada a Nossa Senhora Aparecida, rica em detalhes e simbolismo religioso.',
+    descricao: 'Mandala sacra dedicada a Nossa Senhora Aparecida, rica em traços circulares, detalhes em azul e rico simbolismo de fé.',
     vendido: false 
   },
   { 
     id: 'iemanja', 
     src: Iemanja, 
     alt: 'Mandala - Iemanjá 60x60cm', 
-    descricao: 'Mandala artística em homenagem à rainha do mar, com tons azulados e elementos marinhos.',
+    descricao: 'Mandala artística em homenagem à Rainha do Mar, com geometria harmônica em tons de azul e elementos marinhos.',
     vendido: false 
   },
   { 
     id: 'mariamadalena', 
     src: MariaMadalena, 
     alt: 'Mandala - Maria Madalena 60x60cm', 
-    descricao: 'Mandala com temática de Maria Madalena, expressando delicadeza, devoção e força.',
+    descricao: 'Mandala com temática sacra inspirada em Maria Madalena, combinando delicadeza, equilíbrio e devoção.',
     vendido: false 
   },
   { 
     id: 'oxum', 
     src: Oxum, 
     alt: 'Mandala - Oxum 60x60cm', 
-    descricao: 'Mandala inspirada na energia de Oxum, destacando tons dourados e harmonia espiritual.',
+    descricao: 'Mandala vibrante inspirada em Oxum, destacando geometria fluida em tons dourados e amarelos de harmonia espiritual. (Pequeno detalhe na parte inferior esquerda)',
     vendido: false 
   },
 ]
