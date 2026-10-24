@@ -353,10 +353,15 @@ function App() {
               </div>
             </div>
             <div className="pt-2 border-t border-gray-300">
-              <span className="font-bold block text-gray-900 mb-1 text-sm">Contato:</span>
-              <div className="text-sm font-medium text-gray-800">
-                (34) 99864-1993
-              </div>
+              <span className="font-bold block text-gray-900 mb-1 text-sm">WhatsApp / Contato:</span>
+              <a 
+                href="https://wa.me/5534998641993" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 py-1.5 px-3 rounded-full transition"
+              >
+                <span>💬</span> (34) 99864-1993
+              </a>
             </div>
           </div>
         </aside>
