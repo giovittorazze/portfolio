@@ -342,7 +342,7 @@ function App() {
 
           <div className="text-xs sm:text-sm text-gray-700 leading-relaxed flex flex-col gap-3">
             <p>Eu sou um aprendiz da arte, amo a arte realista mas estou sempre buscando aprender novas técnicas para expandir minha criatividade.</p>
-            <p>Na pintura, eu faço mandalas de caráter religioso, pois é o que mais combina com o tema! Deixo aqui meu portfólio para apreciação, mas também pego encomendas.</p>
+            <p>Na pintura, eu faço mandalas de caráter religioso, pois é o que mais combina com o tema! Deixo aqui meu portfólio para apreciação, mas também faço por encomenda, chama no WhatsApp.</p>
           </div>
 
           <div className="mt-6 lg:mt-auto pt-4 border-t border-gray-400 text-center flex flex-col gap-2">
