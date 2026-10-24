@@ -50,7 +50,7 @@ const galeriaArtes: Arte[] = [
     src: Aguia, 
     alt: 'Águia A3', 
     descricao: 'Desenho detalhado de uma águia imperial demonstrando toda a sua imponência e olhar atento.',
-    vendido: true 
+    vendido: false 
   },
   { 
     id: 'nsaparecida', 
