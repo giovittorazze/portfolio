@@ -13,7 +13,7 @@ import Iemanja from "./assets/img/iemanja.JPEG"
 import MariaMadalena from "./assets/img/mariamadalena.JPEG"
 import Oxum from "./assets/img/oxum.JPEG"
 import TrancaRuas from "./assets/img/trancaruas.JPEG"
-import MobiFraternidadeBranca from "./assets/img/mobifraternidadebranca.JPEG"
+import MobiFraternidadeBranca from "./assets/img/mobifraternidadebranca.JPG"
 import MobiOrixas from "./assets/img/mobiorixas.JPG"
 
 interface Comentario {
