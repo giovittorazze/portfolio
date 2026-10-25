@@ -437,8 +437,18 @@ function App() {
   return (
     <div className="min-h-screen bg-[#faf9f6]">
       <header className="fixed top-0 left-0 w-full h-20 bg-gradient-to-r from-violet-600 via-purple-600 to-cyan-600 flex items-center justify-between px-6 sm:px-10 shadow-md z-40 text-white">
-        <span className="font-['amoresa'] text-2xl sm:text-3xl tracking-wide">Giovanni Vittorazze</span>
-
+        <span
+          onClick={() => {
+            if (paginaAtual !== 'galeria') {
+              setPaginaAtual('galeria');
+            }
+          }}
+          className={`font-['amoresa'] text-2xl sm:text-3xl tracking-wide transition ${paginaAtual !== 'galeria' ? 'cursor-pointer hover:opacity-80 active:scale-98' : 'cursor-default'
+            }`}
+          title={paginaAtual !== 'galeria' ? 'Voltar para a Galeria' : ''}
+        >
+          Giovanni Vittorazze
+        </span>
         <div className="relative">
           <button
             onClick={() => setMenuAberto(!menuAberto)}
