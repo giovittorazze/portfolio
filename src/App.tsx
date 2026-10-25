@@ -11,6 +11,7 @@ import NSAparecida from "./assets/img/nsaparecida.JPEG"
 import Iemanja from "./assets/img/iemanja.JPEG"
 import MariaMadalena from "./assets/img/mariamadalena.JPEG"
 import Oxum from "./assets/img/oxum.JPEG"
+import TrancaRuas from "./assets/img/trancaruas.JPEG"
 
 interface Comentario {
   id: string | number;
@@ -77,6 +78,13 @@ const galeriaArtes: Arte[] = [
     src: Oxum, 
     alt: 'Mandala - Oxum 60x60cm', 
     descricao: 'Mandala vibrante inspirada em Oxum, destacando geometria fluida em tons dourados e amarelos de harmonia espiritual. (Pequeno detalhe na parte inferior esquerda)',
+    vendido: false 
+  },
+  { 
+    id: 'trancaruas', 
+    src: TrancaRuas, 
+    alt: 'Mandala - Tranca Ruas 55x55cm', 
+    descricao: 'Mandala artística e devocional dedicada a Tranca Ruas, combinando geometria sagrada, força e harmonia em tons marcantes.',
     vendido: false 
   },
 ]
