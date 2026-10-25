@@ -81,9 +81,17 @@ const galeriaArtes: Arte[] = [
   },
 ]
 
+// DEFINA A SUA SENHA DE ADMINISTRADOR AQUI:
+const SENHA_ADMIN = "19932403";
+
 function App() {
   const [imagemSelecionada, setImagemSelecionada] = useState<Arte | null>(null);
   const [filtroAtivo, setFiltroAtivo] = useState<'todos' | 'mandalas' | 'desenhos'>('todos');
+
+  // Estado para controlar se o Admin está ativado neste navegador
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    return localStorage.getItem('giovanni_is_admin') === 'true';
+  });
 
   const [likes, setLikes] = useState<{ [key: string]: number }>({});
   const [userLikes, setUserLikes] = useState<string[]>(() => {
@@ -92,7 +100,6 @@ function App() {
   });
   const [comentarios, setComentarios] = useState<{ [key: string]: Comentario[] }>({});
 
-  // Lista dos IDs dos comentários feitos por ESTE usuário no aparelho dele
   const [meusComentariosIds, setMeusComentariosIds] = useState<(string | number)[]>(() => {
     const salvos = localStorage.getItem('giovanni_meus_comentarios_ids');
     return salvos ? JSON.parse(salvos) : [];
@@ -140,6 +147,23 @@ function App() {
   useEffect(() => {
     localStorage.setItem('giovanni_meus_comentarios_ids', JSON.stringify(meusComentariosIds));
   }, [meusComentariosIds]);
+
+  const toggleAdmin = () => {
+    if (isAdmin) {
+      setIsAdmin(false);
+      localStorage.removeItem('giovanni_is_admin');
+      alert('Modo Administrador desativado.');
+    } else {
+      const senhaInformada = prompt('Digite a senha de administrador:');
+      if (senhaInformada === SENHA_ADMIN) {
+        setIsAdmin(true);
+        localStorage.setItem('giovanni_is_admin', 'true');
+        alert('Modo Administrador ativado com sucesso! Você agora pode apagar qualquer comentário.');
+      } else if (senhaInformada !== null) {
+        alert('Senha incorreta!');
+      }
+    }
+  };
 
   const toggleCurtir = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -190,7 +214,6 @@ function App() {
           [id]: [...(prev[id] || []), comentarioCriado]
         }));
 
-        // Guarda o ID do comentário recém-criado para permitir a exclusão apenas por este usuário
         setMeusComentariosIds(prev => [...prev, comentarioCriado.id]);
 
         setNovoNome('');
@@ -202,9 +225,8 @@ function App() {
     }
   };
 
-  // Função para deletar o comentário no banco de dados e na tela
   const handleDeletarComentario = async (arteId: string, comentarioId: string | number) => {
-    const confirmar = window.confirm('Tem certeza de que deseja apagar o seu comentário?');
+    const confirmar = window.confirm('Tem certeza de que deseja apagar este comentário?');
     if (!confirmar) return;
 
     try {
@@ -214,13 +236,11 @@ function App() {
         .eq('id', comentarioId);
 
       if (!error) {
-        // Remove o comentário da tela
         setComentarios(prev => ({
           ...prev,
           [arteId]: (prev[arteId] || []).filter(c => c.id !== comentarioId)
         }));
 
-        // Remove do histórico de IDs do usuário local
         setMeusComentariosIds(prev => prev.filter(id => id !== comentarioId));
       } else {
         alert('Erro ao apagar o comentário. Tente novamente.');
@@ -399,6 +419,16 @@ function App() {
                 <span>💬</span> (34) 99864-1993
               </a>
             </div>
+
+            {/* Botão sutil de Painel de Administrador */}
+            <div className="pt-3">
+              <button 
+                onClick={toggleAdmin}
+                className="text-[10px] text-gray-500 hover:text-gray-700 underline cursor-pointer"
+              >
+                {isAdmin ? '🔓 Desativar Modo Admin' : '🔒 Áreas do Artista'}
+              </button>
+            </div>
           </div>
         </aside>
       </div>
@@ -470,8 +500,9 @@ function App() {
                       <p className="text-xs text-gray-500 italic">Nenhum comentário ainda. Seja o primeiro a comentar!</p>
                     ) : (
                       listaComentarios.map((c) => {
-                        // Verifica se este comentário foi escrito por ESTE aparelho/usuário
                         const souDonoDoComentario = meusComentariosIds.includes(c.id);
+                        // O botão de deletar só aparece se for o próprio criador OU se o Modo Admin estiver ativado
+                        const podeDeletar = souDonoDoComentario || isAdmin;
 
                         return (
                           <div key={c.id} className="bg-white p-3 rounded border border-gray-200 text-xs flex flex-col gap-1 shadow-xs relative">
@@ -480,12 +511,11 @@ function App() {
                               <div className="flex items-center gap-2">
                                 <span className="text-[10px] text-gray-400">{c.data}</span>
                                 
-                                {/* O botão de deletar só é visível para o criador do comentário */}
-                                {souDonoDoComentario && (
+                                {podeDeletar && (
                                   <button
                                     onClick={() => handleDeletarComentario(imagemSelecionada.id, c.id)}
-                                    className="text-red-500 hover:text-red-700 text-xs font-bold ml-1 cursor-pointer"
-                                    title="Apagar meu comentário"
+                                    className="text-red-500 hover:text-red-700 text-xs font-bold ml-1 cursor-pointer bg-red-50 px-2 py-0.5 rounded hover:bg-red-100 transition"
+                                    title="Apagar comentário"
                                   >
                                     🗑️ Deletar
                                   </button>
