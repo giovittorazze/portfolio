@@ -4,12 +4,12 @@ import { supabase } from './supabaseClient'
 
 import Giovanni from "./assets/img/foto.jpg"
 
-import Cavalo from "./assets/img/cavalo.jpg"
-import Canario from "./assets/img/canarinho.jpg"
+import Cavalo from "./assets/img/cavalo.jpeg"
+import Canario from "./assets/img/canarinho.jpeg"
 import Aguia from "./assets/img/aguia.jpg"
-import NSAparecida from "./assets/img/nsaparecida.jpg"
-import Iemanja from "./assets/img/iemanja.jpg"
-import MariaMadalena from "./assets/img/mariamadalena.jpg"
+import NSAparecida from "./assets/img/nsaparecida.jpeg"
+import Iemanja from "./assets/img/iemanja.jpeg"
+import MariaMadalena from "./assets/img/mariamadalena.jpeg"
 import Oxum from "./assets/img/oxum.jpg"
 
 interface Comentario {
