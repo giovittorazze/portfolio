@@ -609,6 +609,7 @@ function App() {
             <p>Eu sou um aprendiz da arte, amo a arte realista mas estou sempre buscando aprender novas técnicas para expandir minha criatividade.</p>
             <p>Na pintura, eu faço mandalas de caráter religioso, pois é o que mais combina com o tema!</p>
             <p>A arte é considerada a expressão mais pura do espírito. O contato com a arte pode despertar sentimentos e emoções profundas, trazendo consciência e sabedoria!</p>
+            <p>Deixo aqui meu portfólio para apreciação, mas também faço sob encomendas, chama no WhatsApp para mais informações.</p>
           </div>
 
           <div className="mt-6 lg:mt-auto pt-4 border-t border-gray-300/80 text-center flex flex-col gap-3">
