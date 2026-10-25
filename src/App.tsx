@@ -44,7 +44,7 @@ interface Postagem {
   tipo: 'foto' | 'video' | 'vimeo';
   fotos?: string[];
   src?: string;
-  capa?: string; // Capa/Thumbnail personalizada para vídeos!
+  capa?: string;
   legenda: string;
   data: string;
 }
@@ -70,7 +70,7 @@ const galeriaArtes: Arte[] = [
     id: 'aguia',
     src: Aguia,
     alt: 'Águia A3',
-    descricao: 'A Águia é um símbolo de força e soberania, arquétipo de coragem, domínio e poder interior. Liberdade e propósito elevado, representa a alma que busca alturas maiores e vive guiada por um propósito elevado. Visão espiritual e clareza, simboliza a capacidade de enxergar além do óbvio, trazendo discernment e orientação.',
+    descricao: 'A Águia é um símbolo de força e soberania, arquétipo de coragem, domínio e poder interior. Liberdade e propósito elevado, representa a alma que busca alturas maiores e vive guiada por um propósito elevado. Visão espiritual e clareza, simboliza a capacidade de enxergar além do óbvio, trazendo discernimento e orientação.',
     preco: 400.00,
     vendido: false
   },
@@ -168,7 +168,9 @@ function App() {
   const [imagemSelecionada, setImagemSelecionada] = useState<Arte | null>(null);
   const [postagemSelecionada, setPostagemSelecionada] = useState<Postagem | null>(null);
   const [indiceFotoAtual, setIndiceFotoAtual] = useState<number>(0);
-  const [filtroAtivo, setFiltroAtivo] = useState<'todos' | 'mandalas' | 'desenhos'>('todos');
+
+  // Inicia com 'desenhos' por padrão
+  const [filtroAtivo, setFiltroAtivo] = useState<'todos' | 'mandalas' | 'desenhos' | 'mobiles'>('todos');
 
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     return localStorage.getItem('giovanni_is_admin') === 'true';
@@ -414,9 +416,15 @@ function App() {
   };
 
   const artesFiltradas = galeriaArtes.filter((arte) => {
-    const ehMandala = arte.alt.toLowerCase().includes('mandala');
+    const altLower = arte.alt.toLowerCase();
+    const idLower = arte.id.toLowerCase();
+
+    const ehMandala = altLower.includes('mandala');
+    const ehMobile = altLower.includes('mobile') || altLower.includes('móbile') || idLower.startsWith('mobi');
+
     if (filtroAtivo === 'mandalas') return ehMandala;
-    if (filtroAtivo === 'desenhos') return !ehMandala;
+    if (filtroAtivo === 'mobiles') return ehMobile;
+    if (filtroAtivo === 'desenhos') return !ehMandala && !ehMobile;
     return true;
   });
 
@@ -466,11 +474,13 @@ function App() {
 
           {paginaAtual === 'galeria' ? (
             <>
+              {/* BARRA DE FILTROS: Todos em primeiro, depois Desenhos, Mandalas e Móbiles */}
               <div className="flex items-center gap-2 overflow-x-auto pb-2">
                 <span className="text-xs font-semibold text-gray-500 mr-1 uppercase tracking-wider">Filtrar:</span>
                 <button onClick={() => setFiltroAtivo('todos')} className={`px-4 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${filtroAtivo === 'todos' ? 'bg-violet-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>Todos</button>
-                <button onClick={() => setFiltroAtivo('mandalas')} className={`px-4 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${filtroAtivo === 'mandalas' ? 'bg-violet-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>Mandalas</button>
                 <button onClick={() => setFiltroAtivo('desenhos')} className={`px-4 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${filtroAtivo === 'desenhos' ? 'bg-violet-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>Desenhos</button>
+                <button onClick={() => setFiltroAtivo('mandalas')} className={`px-4 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${filtroAtivo === 'mandalas' ? 'bg-violet-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>Mandalas</button>
+                <button onClick={() => setFiltroAtivo('mobiles')} className={`px-4 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${filtroAtivo === 'mobiles' ? 'bg-violet-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>Móbiles</button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -513,84 +523,88 @@ function App() {
             </>
           ) : (
             <>
-              <div className="max-w-xl mx-auto w-full mb-4 text-center sm:text-left">
-                <h2 className="text-xl font-bold text-gray-800">📸 Bastidores & Produção</h2>
-                <p className="text-xs text-gray-500">Acompanhe o dia a dia do atelier, rascunhos e momentos de criação.</p>
+              <div className="max-w-xl mx-auto w-full mb-4 text-center sm:text-left" >
+                <h2 className="text-xl font-bold text-gray-800" >📸 Bastidores & Produção </h2>
+                < p className="text-xs text-gray-500" > Acompanhe o dia a dia do atelier, rascunhos e momentos de criação.</p>
               </div>
 
-              <div className="flex flex-col gap-6 max-w-xl mx-auto w-full">
-                {postagensOrdenadas.map((post) => {
-                  const jaCurtiu = userPostLikes.includes(post.id);
-                  const totalComentarios = (postComentarios[post.id] || []).length;
-                  const listaFotos = post.fotos || (post.src ? [post.src] : []);
+              < div className="flex flex-col gap-6 max-w-xl mx-auto w-full" >
+                {
+                  postagensOrdenadas.map((post) => {
+                    const jaCurtiu = userPostLikes.includes(post.id);
+                    const totalComentarios = (postComentarios[post.id] || []).length;
+                    const listaFotos = post.fotos || (post.src ? [post.src] : []);
 
-                  return (
-                    <div key={post.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col">
-                      <div className="px-4 py-3 flex items-center justify-between border-b border-gray-50">
-                        <div className="flex items-center gap-2.5">
-                          <img src={Giovanni} alt="Giovanni" className="w-8 h-8 rounded-full object-cover shadow-sm" />
-                          <div>
-                            <span className="text-xs font-bold text-gray-800 block">Giovanni Vittorazze</span>
-                            <span className="text-[10px] text-gray-400">Atelier de Arte</span>
+                    return (
+                      <div key={post.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col" >
+                        <div className="px-4 py-3 flex items-center justify-between border-b border-gray-50" >
+                          <div className="flex items-center gap-2.5" >
+                            <img src={Giovanni} alt="Giovanni" className="w-8 h-8 rounded-full object-cover shadow-sm" />
+                            <div>
+                              <span className="text-xs font-bold text-gray-800 block" > Giovanni Vittorazze </span>
+                              < span className="text-[10px] text-gray-400" > Atelier de Arte </span>
+                            </div>
+                          </div>
+                          < span className="text-[10px] bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full font-medium" > {post.data} </span>
+                        </div>
+
+                        {/* EXIBIÇÃO DE VÍDEOS E THUMBNAIL NO FEED */}
+                        <div
+                          onClick={() => { setPostagemSelecionada(post); setIndiceFotoAtual(0); }}
+                          className="w-full h-80 bg-gray-900 relative flex items-center justify-center cursor-pointer group overflow-hidden"
+                        >
+                          {
+                            post.tipo === 'vimeo' && post.capa ? (
+                              <>
+                                <img src={post.capa} alt="Capa do Vídeo" className="w-full h-full object-cover group-hover:scale-102 transition duration-500" />
+                                <div className="absolute w-14 h-14 bg-black/60 rounded-full flex items-center justify-center text-white text-2xl pl-1 shadow-lg backdrop-blur-xs group-hover:scale-110 transition duration-300">▶</div>
+                              </>
+                            ) : post.tipo === 'vimeo' ? (
+                              <iframe src={post.src} className="w-full h-full object-cover pointer-events-none" frameBorder="0" > </iframe>
+                            ) : post.tipo === 'video' ? (
+                              <video src={post.src} className="w-full h-full object-cover pointer-events-none" muted />
+                            ) : (
+                              <>
+                                <img src={listaFotos[0]} alt="Postagem" className="w-full h-full object-cover group-hover:scale-102 transition duration-500" />
+                                {
+                                  listaFotos.length > 1 && (
+                                    <span className="absolute top-3 right-3 bg-black/60 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm font-medium z-10">
+                                      📷 1 / {listaFotos.length}
+                                    </span>
+                                  )
+                                }
+                              </>
+                            )}
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-medium z-10" >
+                            {post.tipo === 'video' || post.tipo === 'vimeo' ? '▶️ Assistir vídeo completo' : '🔍 Ver galeria de fotos'}
                           </div>
                         </div>
-                        <span className="text-[10px] bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full font-medium">{post.data}</span>
-                      </div>
 
-                      {/* EXIBIÇÃO DE VÍDEOS E THUMBNAIL NO FEED */}
-                      <div
-                        onClick={() => { setPostagemSelecionada(post); setIndiceFotoAtual(0); }}
-                        className="w-full h-80 bg-gray-900 relative flex items-center justify-center cursor-pointer group overflow-hidden"
-                      >
-                        {post.tipo === 'vimeo' && post.capa ? (
-                          <>
-                            <img src={post.capa} alt="Capa do Vídeo" className="w-full h-full object-cover group-hover:scale-102 transition duration-500" />
-                            <div className="absolute w-14 h-14 bg-black/60 rounded-full flex items-center justify-center text-white text-2xl pl-1 shadow-lg backdrop-blur-xs group-hover:scale-110 transition duration-300">▶</div>
-                          </>
-                        ) : post.tipo === 'vimeo' ? (
-                          <iframe src={post.src} className="w-full h-full object-cover pointer-events-none" frameBorder="0"></iframe>
-                        ) : post.tipo === 'video' ? (
-                          <video src={post.src} className="w-full h-full object-cover pointer-events-none" muted />
-                        ) : (
-                          <>
-                            <img src={listaFotos[0]} alt="Postagem" className="w-full h-full object-cover group-hover:scale-102 transition duration-500" />
-                            {listaFotos.length > 1 && (
-                              <span className="absolute top-3 right-3 bg-black/60 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-sm font-medium z-10">
-                                📷 1 / {listaFotos.length}
-                              </span>
-                            )}
-                          </>
-                        )}
-                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-medium z-10">
-                          {post.tipo === 'video' || post.tipo === 'vimeo' ? '▶️ Assistir vídeo completo' : '🔍 Ver galeria de fotos'}
+                        < div className="p-4 bg-white flex flex-col gap-3" >
+                          <p className="text-xs sm:text-sm text-gray-700 leading-relaxed" > {post.legenda} </p>
+
+                          < div className="flex items-center justify-between pt-3 border-t border-gray-100" >
+                            <button
+                              type="button"
+                              onClick={() => { setPostagemSelecionada(post); setIndiceFotoAtual(0); }}
+                              className="text-xs font-semibold text-violet-600 hover:text-violet-700 cursor-pointer flex items-center gap-1.5"
+                            >
+                              <span>💬</span> Comentários ({totalComentarios})
+                            </button>
+
+                            < button
+                              type="button"
+                              onClick={(e) => toggleCurtirPost(post.id, e)}
+                              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition text-xs font-medium cursor-pointer active:scale-95 z-20 ${jaCurtiu ? 'bg-rose-50 text-rose-600 shadow-inner' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                            >
+                              <span>{jaCurtiu ? '❤️' : '🤍'} </span>
+                              < span > {postLikes[post.id] || 0} </span>
+                            </button>
+                          </div>
                         </div>
                       </div>
-
-                      <div className="p-4 bg-white flex flex-col gap-3">
-                        <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">{post.legenda}</p>
-
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                          <button
-                            type="button"
-                            onClick={() => { setPostagemSelecionada(post); setIndiceFotoAtual(0); }}
-                            className="text-xs font-semibold text-violet-600 hover:text-violet-700 cursor-pointer flex items-center gap-1.5"
-                          >
-                            <span>💬</span> Comentários ({totalComentarios})
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => toggleCurtirPost(post.id, e)}
-                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition text-xs font-medium cursor-pointer active:scale-95 z-20 ${jaCurtiu ? 'bg-rose-50 text-rose-600 shadow-inner' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
-                          >
-                            <span>{jaCurtiu ? '❤️' : '🤍'}</span>
-                            <span>{postLikes[post.id] || 0}</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </>
           )}
@@ -718,111 +732,120 @@ function App() {
       })()}
 
       {/* MODAL DE DETALHES DA POSTAGEM */}
-      {postagemSelecionada && (() => {
-        const jaCurtiuModal = userPostLikes.includes(postagemSelecionada.id);
-        const listaComentarios = postComentarios[postagemSelecionada.id] || [];
-        const listaFotosModal = postagemSelecionada.fotos || (postagemSelecionada.src ? [postagemSelecionada.src] : []);
+      {
+        postagemSelecionada && (() => {
+          const jaCurtiuModal = userPostLikes.includes(postagemSelecionada.id);
+          const listaComentarios = postComentarios[postagemSelecionada.id] || [];
+          const listaFotosModal = postagemSelecionada.fotos || (postagemSelecionada.src ? [postagemSelecionada.src] : []);
 
-        return (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="relative max-w-2xl w-full max-h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col">
-              <button
-                type="button"
-                onClick={() => setPostagemSelecionada(null)}
-                className="absolute top-4 right-4 text-white text-xl font-bold bg-black/60 w-8 h-8 flex items-center justify-center rounded-full hover:bg-rose-600 transition cursor-pointer z-50"
-              >
-                &times;
-              </button>
+          return (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" >
+              <div className="relative max-w-2xl w-full max-h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col" >
+                <button
+                  type="button"
+                  onClick={() => setPostagemSelecionada(null)
+                  }
+                  className="absolute top-4 right-4 text-white text-xl font-bold bg-black/60 w-8 h-8 flex items-center justify-center rounded-full hover:bg-rose-600 transition cursor-pointer z-50"
+                >
+                  &times;
+                </button>
 
-              <div className="overflow-y-auto max-h-[90vh]">
-                <div className="bg-black flex items-center justify-center max-h-[55vh] relative min-h-[300px]">
-                  {postagemSelecionada.tipo === 'video' ? (
-                    <video src={postagemSelecionada.src} controls autoPlay className="max-w-full max-h-[55vh] object-contain" />
-                  ) : postagemSelecionada.tipo === 'vimeo' ? (
-                    <iframe src={`${postagemSelecionada.src}?autoplay=1`} className="w-full h-[55vh]" frameBorder="0" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen></iframe>
-                  ) : (
-                    <>
-                      <img src={listaFotosModal[indiceFotoAtual]} alt="Postagem" className="max-w-full max-h-[55vh] object-contain transition-all" />
-
-                      {listaFotosModal.length > 1 && (
+                < div className="overflow-y-auto max-h-[90vh]" >
+                  <div className="bg-black flex items-center justify-center max-h-[55vh] relative min-h-[300px]" >
+                    {
+                      postagemSelecionada.tipo === 'video' ? (
+                        <video src={postagemSelecionada.src} controls autoPlay className="max-w-full max-h-[55vh] object-contain" />
+                      ) : postagemSelecionada.tipo === 'vimeo' ? (
+                        <iframe src={`${postagemSelecionada.src}?autoplay=1`} className="w-full h-[55vh]" frameBorder="0" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen > </iframe>
+                      ) : (
                         <>
-                          {indiceFotoAtual > 0 && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setIndiceFotoAtual(prev => prev - 1); }}
-                              className="absolute left-3 bg-black/50 hover:bg-black/80 text-white w-9 h-9 rounded-full flex items-center justify-center text-lg transition cursor-pointer"
-                            >
-                              ‹
-                            </button>
-                          )}
-                          {indiceFotoAtual < listaFotosModal.length - 1 && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setIndiceFotoAtual(prev => prev + 1); }}
-                              className="absolute right-3 bg-black/50 hover:bg-black/80 text-white w-9 h-9 rounded-full flex items-center justify-center text-lg transition cursor-pointer"
-                            >
-                              ›
-                            </button>
-                          )}
-                          <span className="absolute bottom-3 bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm">
-                            {indiceFotoAtual + 1} / {listaFotosModal.length}
-                          </span>
+                          <img src={listaFotosModal[indiceFotoAtual]} alt="Postagem" className="max-w-full max-h-[55vh] object-contain transition-all" />
+
+                          {
+                            listaFotosModal.length > 1 && (
+                              <>
+                                {indiceFotoAtual > 0 && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setIndiceFotoAtual(prev => prev - 1); }}
+                                    className="absolute left-3 bg-black/50 hover:bg-black/80 text-white w-9 h-9 rounded-full flex items-center justify-center text-lg transition cursor-pointer"
+                                  >
+                                    ‹
+                                  </button>
+                                )
+                                }
+                                {
+                                  indiceFotoAtual < listaFotosModal.length - 1 && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setIndiceFotoAtual(prev => prev + 1); }}
+                                      className="absolute right-3 bg-black/50 hover:bg-black/80 text-white w-9 h-9 rounded-full flex items-center justify-center text-lg transition cursor-pointer"
+                                    >
+                                      ›
+                                    </button>
+                                  )
+                                }
+                                <span className="absolute bottom-3 bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm" >
+                                  {indiceFotoAtual + 1} / {listaFotosModal.length}
+                                </span>
+                              </>
+                            )}
                         </>
                       )}
-                    </>
-                  )}
-                </div>
-
-                <div className="p-6 bg-white flex flex-col gap-3 border-b border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400 font-medium">Publicado em {postagemSelecionada.data}</span>
-                    <button onClick={() => toggleCurtirPost(postagemSelecionada.id)} className={`flex items-center gap-2 px-4 py-2 rounded-full transition font-bold cursor-pointer active:scale-95 ${jaCurtiuModal ? 'bg-rose-50 text-rose-600 shadow-inner' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
-                      <span className="text-base">{jaCurtiuModal ? '❤️' : '🤍'}</span>
-                      <span className="text-xs">{postLikes[postagemSelecionada.id] || 0} Curtidas</span>
-                    </button>
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">{postagemSelecionada.legenda}</p>
-                </div>
-
-                <div className="p-6 bg-[#faf9f6] flex flex-col gap-4">
-                  <h3 className="font-bold text-gray-800 text-sm">Comentários ({listaComentarios.length})</h3>
-                  <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1">
-                    {listaComentarios.length === 0 ? (
-                      <p className="text-xs text-gray-400 italic">Nenhum comentário ainda. Seja o primeiro a comentar!</p>
-                    ) : (
-                      listaComentarios.map((c) => {
-                        const podeDeletar = meusPostComentariosIds.includes(c.id) || isAdmin;
-                        return (
-                          <div key={c.id} className="bg-white p-3 rounded-xl border border-gray-200/60 text-xs flex flex-col gap-1 shadow-xs">
-                            <div className="flex justify-between items-center">
-                              <span className="font-bold text-gray-900">{c.nome}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-gray-400">{c.data}</span>
-                                {podeDeletar && (
-                                  <button onClick={() => handleDeletarComentarioPost(postagemSelecionada.id, c.id)} className="text-rose-500 hover:text-rose-700 text-xs font-medium bg-rose-50 px-2 py-0.5 rounded cursor-pointer">🗑️ Apagar</button>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-gray-600">{c.texto}</p>
-                          </div>
-                        );
-                      })
-                    )}
                   </div>
 
-                  <form onSubmit={(e) => handleAdicionarComentarioPost(postagemSelecionada.id, e)} className="flex flex-col gap-2.5 pt-3 border-t border-gray-200/60">
-                    <span className="text-xs font-semibold text-gray-700">Deixe seu comentário:</span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <input type="text" placeholder="Seu nome" value={novoNome} onChange={(e) => setNovoNome(e.target.value)} className="text-xs p-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500" required />
-                      <input type="email" placeholder="Seu e-mail (não publicado)" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} className="text-xs p-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500" required />
+                  < div className="p-6 bg-white flex flex-col gap-3 border-b border-gray-100" >
+                    <div className="flex items-center justify-between" >
+                      <span className="text-xs text-gray-400 font-medium" > Publicado em {postagemSelecionada.data} </span>
+                      < button onClick={() => toggleCurtirPost(postagemSelecionada.id)} className={`flex items-center gap-2 px-4 py-2 rounded-full transition font-bold cursor-pointer active:scale-95 ${jaCurtiuModal ? 'bg-rose-50 text-rose-600 shadow-inner' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
+                        <span className="text-base" > {jaCurtiuModal ? '❤️' : '🤍'} </span>
+                        < span className="text-xs" > {postLikes[postagemSelecionada.id] || 0} Curtidas </span>
+                      </button>
                     </div>
-                    <textarea placeholder="Escreva sua mensagem com carinho..." value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)} rows={2} className="text-xs p-2.5 rounded-xl border border-gray-300 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-violet-500" required></textarea>
-                    <button type="submit" className="bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition self-end cursor-pointer shadow-sm">Enviar Comentário</button>
-                  </form>
+                    < p className="text-xs sm:text-sm text-gray-700 leading-relaxed" > {postagemSelecionada.legenda} </p>
+                  </div>
+
+                  < div className="p-6 bg-[#faf9f6] flex flex-col gap-4" >
+                    <h3 className="font-bold text-gray-800 text-sm" > Comentários({listaComentarios.length}) </h3>
+                    < div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1" >
+                      {
+                        listaComentarios.length === 0 ? (
+                          <p className="text-xs text-gray-400 italic" > Nenhum comentário ainda.Seja o primeiro a comentar!</ p >
+                        ) : (
+                          listaComentarios.map((c) => {
+                            const podeDeletar = meusPostComentariosIds.includes(c.id) || isAdmin;
+                            return (
+                              <div key={c.id} className="bg-white p-3 rounded-xl border border-gray-200/60 text-xs flex flex-col gap-1 shadow-xs" >
+                                <div className="flex justify-between items-center" >
+                                  <span className="font-bold text-gray-900" > {c.nome} </span>
+                                  < div className="flex items-center gap-2" >
+                                    <span className="text-[10px] text-gray-400" > {c.data} </span>
+                                    {
+                                      podeDeletar && (
+                                        <button onClick={() => handleDeletarComentarioPost(postagemSelecionada.id, c.id)} className="text-rose-500 hover:text-rose-700 text-xs font-medium bg-rose-50 px-2 py-0.5 rounded cursor-pointer" >🗑️ Apagar </button>
+                                      )}
+                                  </div>
+                                </div>
+                                < p className="text-gray-600" > {c.texto} </p>
+                              </div>
+                            );
+                          })
+                        )}
+                    </div>
+
+                    < form onSubmit={(e) => handleAdicionarComentarioPost(postagemSelecionada.id, e)} className="flex flex-col gap-2.5 pt-3 border-t border-gray-200/60" >
+                      <span className="text-xs font-semibold text-gray-700" > Deixe seu comentário: </span>
+                      < div className="grid grid-cols-1 sm:grid-cols-2 gap-2" >
+                        <input type="text" placeholder="Seu nome" value={novoNome} onChange={(e) => setNovoNome(e.target.value)} className="text-xs p-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500" required />
+                        <input type="email" placeholder="Seu e-mail (não publicado)" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} className="text-xs p-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500" required />
+                      </div>
+                      < textarea placeholder="Escreva sua mensagem com carinho..." value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)} rows={2} className="text-xs p-2.5 rounded-xl border border-gray-300 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-violet-500" required > </textarea>
+                      < button type="submit" className="bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition self-end cursor-pointer shadow-sm" > Enviar Comentário </button>
+                    </form>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
     </div>
   )
 }
