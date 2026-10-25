@@ -4,13 +4,13 @@ import { supabase } from './supabaseClient'
 
 import Giovanni from "./assets/img/foto.jpg"
 
-import Cavalo from "./assets/img/cavalo.jpeg"
-import Canario from "./assets/img/canarinho.jpeg"
-import Aguia from "./assets/img/aguia.jpeg"
-import NSAparecida from "./assets/img/nsaparecida.jpeg"
-import Iemanja from "./assets/img/iemanja.jpeg"
-import MariaMadalena from "./assets/img/mariamadalena.jpeg"
-import Oxum from "./assets/img/oxum.jpeg"
+import Cavalo from "./assets/img/cavalo.JPEG"
+import Canario from "./assets/img/canarinho.JPEG"
+import Aguia from "./assets/img/aguia.JPEG"
+import NSAparecida from "./assets/img/nsaparecida.JPEG"
+import Iemanja from "./assets/img/iemanja.JPEG"
+import MariaMadalena from "./assets/img/mariamadalena.JPEG"
+import Oxum from "./assets/img/oxum.JPEG"
 
 interface Comentario {
   id: string | number;
