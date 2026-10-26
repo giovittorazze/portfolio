@@ -15,44 +15,44 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
     const [pushAtivo, setPushAtivo] = useState(false);
     const [totalSeguidores, setTotalSeguidores] = useState<number | null>(null);
 
-    // 🌟 Base fixa de inscritos via Web Push
+    // 🌟 Base fixa de inscritos via Web Push (opcional)
     const BASE_WEB_PUSH = 5;
 
-    // Função centralizada para buscar a contagem do Supabase + Base + Status atual do Push
+    // Função centralizada para buscar a contagem global no Supabase
     const recarregarContagem = async () => {
         try {
-            const { count, error } = await supabase
+            // 1. Conta e-mails no Supabase
+            const { count: countEmails } = await supabase
                 .from('newsletter_inscritos')
                 .select('*', { count: 'exact', head: true });
 
-            const totalSupabase = (!error && count !== null) ? count : 0;
+            // 2. Conta push cadastrados no Supabase
+            const { count: countPush } = await supabase
+                .from('push_inscritos')
+                .select('*', { count: 'exact', head: true });
 
-            // Verifica se o navegador atual está com o Push ativo no OneSignal
-            let pushExtra = 0;
-            // @ts-ignore
-            if (window.OneSignal) {
-                // @ts-ignore
-                const isOptedIn = await window.OneSignal.User.PushSubscription.optedIn;
-                setPushAtivo(!!isOptedIn);
-                if (isOptedIn) {
-                    pushExtra = 1; // Soma 1 se este navegador estiver inscrito no push
-                }
-            }
+            const totalEmails = countEmails !== null ? countEmails : 0;
+            const totalPushBD = countPush !== null ? countPush : 0;
 
-            // Soma total: Supabase + Base Fixa + Push deste navegador (se ativo)
-            setTotalSeguidores(totalSupabase + BASE_WEB_PUSH + pushExtra);
+            // Soma total global: E-mails + Push Global do Banco + Base Fixa
+            setTotalSeguidores(totalEmails + totalPushBD + BASE_WEB_PUSH);
         } catch (err) {
-            console.error('Erro ao buscar contagem de inscritos:', err);
+            console.error('Erro ao buscar contagem global:', err);
         }
     };
 
-    // Busca dados iniciais ao carregar a página
+    // Busca dados iniciais e verifica status do Push ao carregar a página
     useEffect(() => {
         const inicializar = async () => {
-            // Pequeno delay para garantir que o SDK do OneSignal injetou na página
             setTimeout(async () => {
+                // @ts-ignore
+                if (window.OneSignal) {
+                    // @ts-ignore
+                    const isOptedIn = window.OneSignal.User.PushSubscription.optedIn;
+                    setPushAtivo(!!isOptedIn);
+                }
                 await recarregarContagem();
-            }, 500);
+            }, 600);
         };
 
         inicializar();
@@ -108,25 +108,8 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
         }
     };
 
-    // Alterna Web Push com suporte a orientações para iOS/Safari
+    // Alterna Web Push de forma 100% global no Supabase
     const toggleNotificacoesBrowser = async () => {
-        // Detecta se é um dispositivo iOS (iPhone / iPad)
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-
-        // Detecta se o site está rodando no modo aplicativo (standalone) na Tela de Início
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
-
-        // Se for iPhone e NÃO estiver instalado na Tela de Início
-        if (isIOS && !isStandalone) {
-            alert(
-                '📱 Para receber notificações no iPhone:\n\n' +
-                '1. Toque no botão de Compartilhar (ícone ⬆️ na barra do navegador).\n' +
-                '2. Selecione "Adicionar à Tela de Início".\n' +
-                '3. Abra o aplicativo criado na sua Tela de Início e ative os avisos por lá!'
-            );
-            return;
-        }
-
         // @ts-ignore
         if (window.OneSignal) {
             try {
@@ -136,18 +119,48 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                 if (isOptedIn) {
                     // Desativar Notificações
                     // @ts-ignore
+                    const subscriptionId = window.OneSignal.User.PushSubscription.id;
+
+                    // @ts-ignore
                     await window.OneSignal.User.PushSubscription.optOut();
                     setPushAtivo(false);
-                    alert('🔔 Notificações desativadas.');
+
+                    // Remove do Supabase para decrementar globalmente
+                    if (subscriptionId) {
+                        await supabase
+                            .from('push_inscritos')
+                            .delete()
+                            .eq('subscription_id', subscriptionId);
+                    }
+
+                    alert('🔔 Notificações do navegador desativadas.');
                 } else {
                     // Ativar Notificações
                     // @ts-ignore
                     await window.OneSignal.Notifications.requestPermission();
                     // @ts-ignore
                     await window.OneSignal.User.PushSubscription.optIn();
+
+                    // 🌟 Aguarda um instante para garantir que o OneSignal gerou o ID do dispositivo
+                    let subscriptionId = null;
+                    for (let i = 0; i < 5; i++) {
+                        // @ts-ignore
+                        subscriptionId = window.OneSignal.User.PushSubscription.id;
+                        if (subscriptionId) break;
+                        await new Promise((res) => setTimeout(res, 500));
+                    }
+
+                    // Salva no Supabase para contar globalmente para todos os usuários
+                    if (subscriptionId) {
+                        await supabase
+                            .from('push_inscritos')
+                            .upsert([{ subscription_id: subscriptionId }], { onConflict: 'subscription_id' });
+                    }
+
                     setPushAtivo(true);
                 }
 
+                // Recarrega o contador global
                 await recarregarContagem();
             } catch (err) {
                 console.error('Erro no OneSignal:', err);
