@@ -152,8 +152,8 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
             </div>
 
             <div className="text-xs sm:text-sm text-gray-600 leading-relaxed flex flex-col gap-3">
-                <p>Eu sou um aprendiz da arte, amo a arte realista mas estou sempre buscando aprender novas técnicas para expandir minha criatividade.</p>
-                <p>Na pintura, eu faço mandalas de caráter religioso, pois é o que mais combina com o tema!</p>
+                <p>Eu sou um aprendiz da arte, amo o realismo mas estou sempre buscando aprender novas técnicas para expandir minha criatividade.</p>
+                <p>Este é o meu espaço para compartilhar minhas obras, bastidores e novidades. Sinta-se à vontade para explorar e acompanhar meu trabalho!</p>
             </div>
 
             {/* BLOCO DE SEGUIDORES E NOTIFICAÇÕES (COMPACTO COM CONTADOR) */}
