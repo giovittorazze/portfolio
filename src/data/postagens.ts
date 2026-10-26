@@ -11,7 +11,7 @@ export const galeriaPostagens: Postagem[] = [
     tipo: 'vimeo',
     src: 'https://player.vimeo.com/video/1239287524',
     capa: Goku04,
-    legenda: 'Andamento do projeto Goku SSJ 3, confere aí como está ficando. Comecei a trabalhar o fundo, está ficando show! ✨',
+    legenda: 'Andamento do projeto Goku SSJ 3, comecei a trabalhar o fundo, está ficando show, confere aí! ✨',
     data: '25/10/2026'
   },
   {
