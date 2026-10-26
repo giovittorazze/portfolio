@@ -108,8 +108,25 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
         }
     };
 
-    // Alterna as notificações Push do Navegador (OneSignal v16)
+    // Alterna Web Push com suporte a orientações para iOS/Safari
     const toggleNotificacoesBrowser = async () => {
+        // Detecta se é um dispositivo iOS (iPhone / iPad)
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
+        // Detecta se o site está rodando no modo aplicativo (standalone) na Tela de Início
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+
+        // Se for iPhone e NÃO estiver instalado na Tela de Início
+        if (isIOS && !isStandalone) {
+            alert(
+                '📱 Para receber notificações no iPhone:\n\n' +
+                '1. Toque no botão de Compartilhar (ícone ⬆️ na barra do navegador).\n' +
+                '2. Selecione "Adicionar à Tela de Início".\n' +
+                '3. Abra o aplicativo criado na sua Tela de Início e ative os avisos por lá!'
+            );
+            return;
+        }
+
         // @ts-ignore
         if (window.OneSignal) {
             try {
@@ -121,7 +138,7 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                     // @ts-ignore
                     await window.OneSignal.User.PushSubscription.optOut();
                     setPushAtivo(false);
-                    alert('🔔 Notificações do navegador desativadas.');
+                    alert('🔔 Notificações desativadas.');
                 } else {
                     // Ativar Notificações
                     // @ts-ignore
@@ -130,8 +147,7 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                     await window.OneSignal.User.PushSubscription.optIn();
                     setPushAtivo(true);
                 }
-                
-                // Recarrega o contador com base no novo estado do push
+
                 await recarregarContagem();
             } catch (err) {
                 console.error('Erro no OneSignal:', err);
@@ -140,7 +156,7 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
             alert('O sistema de notificações ainda está carregando.');
         }
     };
-    
+
     return (
         <aside className="w-full lg:w-80 bg-[#f4f2ec] p-6 flex flex-col text-gray-800 shadow-lg lg:fixed lg:right-0 lg:top-20 lg:h-[calc(100vh-5rem)] lg:overflow-y-auto border-l border-gray-200/60">
             <div className="flex items-center gap-3 mb-4">
