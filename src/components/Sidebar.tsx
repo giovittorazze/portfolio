@@ -15,12 +15,6 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
     const [pushAtivo, setPushAtivo] = useState(false);
     const [totalSeguidores, setTotalSeguidores] = useState<number | null>(null);
 
-    // 🌟 Estados para o Disparo de Newsletter (Modo Admin)
-    const [assuntoEmail, setAssuntoEmail] = useState('');
-    const [corpoMensagem, setCorpoMensagem] = useState('');
-    const [linkObra, setLinkObra] = useState('');
-    const [enviandoNewsletter, setEnviandoNewsletter] = useState(false);
-
     // 🌟 Base fixa de inscritos via Web Push
     const BASE_WEB_PUSH = 5;
 
@@ -163,37 +157,6 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
         }
     };
 
-    // 🌟 Função para disparar a newsletter via Supabase Edge Function
-    const handleEnviarNewsletter = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!assuntoEmail.trim() || !corpoMensagem.trim()) return;
-
-        if (!confirm('Tem certeza que deseja disparar este e-mail para todos os inscritos?')) return;
-
-        setEnviandoNewsletter(true);
-        try {
-            const { error } = await supabase.functions.invoke('enviar-newsletter', {
-                body: {
-                    assunto: assuntoEmail,
-                    mensagem: corpoMensagem,
-                    linkObra: linkObra,
-                },
-            });
-
-            if (error) throw error;
-
-            alert('🎉 E-mails disparados com sucesso para toda a lista!');
-            setAssuntoEmail('');
-            setCorpoMensagem('');
-            setLinkObra('');
-        } catch (err) {
-            console.error('Erro ao enviar newsletter:', err);
-            alert('❌ Erro ao enviar os e-mails. Verifique o console.');
-        } finally {
-            setEnviandoNewsletter(false);
-        }
-    };
-
     return (
         <aside className="w-full lg:w-80 bg-[#f4f2ec] p-6 flex flex-col text-gray-800 shadow-lg lg:fixed lg:right-0 lg:top-20 lg:h-[calc(100vh-5rem)] lg:overflow-y-auto border-l border-gray-200/60">
             <div className="flex items-center gap-3 mb-4">
@@ -209,7 +172,7 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                 <p>Este é o meu espaço para compartilhar minhas obras, bastidores e novidades. Sinta-se à vontade para explorar e acompanhar meu trabalho!</p>
             </div>
 
-            {/* BLOCO DE SEGUIDORES E NOTIFICAÇÕES (COMPACTO COM CONTADOR) */}
+            {/* BLOCO DE SEGUIDORES E NOTIFICAÇÕES */}
             <div className="mt-4 p-3.5 bg-white rounded-2xl shadow-xs border border-violet-100 flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-violet-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -283,44 +246,13 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                 </button>
             </div>
 
-            {/* 🌟 PAINEL DO MODO ADMIN (Exibido apenas quando isAdmin for true) */}
+            {/* MODO ADMIN APENAS INFORMATIVO */}
             {isAdmin && (
-                <div className="mt-4 p-3.5 bg-violet-50 rounded-2xl border border-violet-200 flex flex-col gap-2.5">
-                    <span className="font-bold text-xs text-violet-900 uppercase tracking-wider flex items-center gap-1.5">
-                        <span>⚙️</span> Painel do Artista (Disparo)
-                    </span>
-                    <form onSubmit={handleEnviarNewsletter} className="flex flex-col gap-2">
-                        <input
-                            type="text"
-                            placeholder="Assunto do E-mail"
-                            value={assuntoEmail}
-                            onChange={(e) => setAssuntoEmail(e.target.value)}
-                            className="text-xs p-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
-                            required
-                        />
-                        <textarea
-                            placeholder="Mensagem da nova obra ou publicação..."
-                            value={corpoMensagem}
-                            onChange={(e) => setCorpoMensagem(e.target.value)}
-                            rows={3}
-                            className="text-xs p-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
-                            required
-                        />
-                        <input
-                            type="url"
-                            placeholder="Link da obra (opcional)"
-                            value={linkObra}
-                            onChange={(e) => setLinkObra(e.target.value)}
-                            className="text-xs p-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
-                        />
-                        <button
-                            type="submit"
-                            disabled={enviandoNewsletter}
-                            className="text-xs font-bold py-2 rounded-xl bg-violet-700 hover:bg-violet-800 transition cursor-pointer shadow-sm text-white disabled:opacity-50"
-                        >
-                            {enviandoNewsletter ? 'Disparando...' : '🚀 Disparar para Todos'}
-                        </button>
-                    </form>
+                <div className="mt-4 p-3 bg-violet-50 rounded-2xl border border-violet-200 text-xs text-violet-900">
+                    <p className="font-bold mb-1">⚙️ Modo Admin Ativo</p>
+                    <p className="text-[11px] text-violet-700">
+                        Para disparar e-mails para a lista, exporte a tabela <code className="bg-violet-100 px-1 rounded">newsletter_inscritos</code> do Supabase em formato CSV e importe na plataforma de e-mail marketing.
+                    </p>
                 </div>
             )}
 
