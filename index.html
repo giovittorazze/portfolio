@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -9,9 +10,22 @@
   <meta property="og:description" content="Conheça minhas artes realistas e mandalas sacras." />
   <meta property="og:image" content="https://giovittorazze.github.io/portfolio/assets/img/foto.jpg" />
   <meta property="og:url" content="https://giovittorazze.github.io/portfolio/" />
+
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function (OneSignal) {
+      await OneSignal.init({
+        appId: "68b4e34f-2836-4866-a320-2c84bef4e3b2",
+      });
+    });
+  </script>
+
 </head>
+
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
+
 </html>
