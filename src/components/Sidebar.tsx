@@ -16,7 +16,7 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
     const [totalSeguidores, setTotalSeguidores] = useState<number | null>(null);
 
     // 🌟 Base fixa de inscritos via Web Push
-    const BASE_WEB_PUSH = 5;
+    const BASE_WEB_PUSH = 0;
 
     // Função centralizada para buscar a contagem global no Supabase
     const recarregarContagem = async () => {

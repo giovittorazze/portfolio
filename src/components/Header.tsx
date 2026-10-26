@@ -7,7 +7,7 @@ interface HeaderProps {
 
 export function Header({ paginaAtual, setPaginaAtual, menuAberto, setMenuAberto }: HeaderProps) {
   return (
-    <header className="fixed top-0 left-0 w-full h-20 bg-gradient-to-r from-violet-600 via-purple-600 to-cyan-600 flex items-center justify-between px-6 sm:px-10 shadow-md z-40 text-white">
+    <header className="fixed top-0 left-0 w-full h-20 bg-linear-to-r from-violet-600 via-purple-600 to-cyan-600 flex items-center justify-between px-6 sm:px-10 shadow-md z-40 text-white">
       <span
         onClick={() => {
           if (paginaAtual !== 'galeria') {
