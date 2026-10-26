@@ -1,31 +1,54 @@
-// supabase/functions/enviar-newsletter/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+// Cabeçalhos para liberar a política de CORS para o seu site
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
 
 serve(async (req) => {
+  // 1. Trata a requisição de pré-checagem (preflight/OPTIONS) enviada pelo navegador
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
     const { assunto, mensagem, linkObra } = await req.json()
 
-    // Conexão com o Supabase usando as chaves de serviço
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    if (!RESEND_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: 'Chave RESEND_API_KEY não configurada nos secrets do Supabase.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Instancia o cliente admin do Supabase
     const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      SUPABASE_URL ?? '',
+      SUPABASE_SERVICE_ROLE_KEY ?? ''
     )
 
-    // 1. Busca todos os e-mails dos inscritos
-    const { data: inscritos, error } = await supabaseAdmin
+    // 2. Busca os e-mails cadastrados
+    const { data: inscritos, error: dbError } = await supabaseAdmin
       .from('newsletter_inscritos')
       .select('email')
 
-    if (error || !inscritos || inscritos.length === 0) {
-      return new Response(JSON.stringify({ error: 'Nenhum inscrito encontrado.' }), { status: 400 })
+    if (dbError || !inscritos || inscritos.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Nenhum e-mail inscrito encontrado.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    const destinatarios = inscritos.map(item => item.email)
+    const destinatarios = inscritos.map((item) => item.email)
 
-    // 2. Dispara o e-mail usando a API do Resend (envio em lote)
+    // 3. Dispara via Resend
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -33,7 +56,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'Atelier <onboarding@resend.dev>', // Seu domínio verificado no Resend
+        from: 'Atelier <onboarding@resend.dev>',
         to: destinatarios,
         subject: assunto,
         html: `
@@ -51,9 +74,13 @@ serve(async (req) => {
     const data = await res.json()
 
     return new Response(JSON.stringify({ success: true, data }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
     })
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
 })
