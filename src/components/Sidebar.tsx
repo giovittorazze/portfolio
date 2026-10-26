@@ -15,18 +15,22 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
     const [pushAtivo, setPushAtivo] = useState(false);
     const [totalSeguidores, setTotalSeguidores] = useState<number | null>(null);
 
-    // 🌟 Base fixa de inscritos via Web Push (opcional)
+    // 🌟 Estados para o Disparo de Newsletter (Modo Admin)
+    const [assuntoEmail, setAssuntoEmail] = useState('');
+    const [corpoMensagem, setCorpoMensagem] = useState('');
+    const [linkObra, setLinkObra] = useState('');
+    const [enviandoNewsletter, setEnviandoNewsletter] = useState(false);
+
+    // 🌟 Base fixa de inscritos via Web Push
     const BASE_WEB_PUSH = 5;
 
     // Função centralizada para buscar a contagem global no Supabase
     const recarregarContagem = async () => {
         try {
-            // 1. Conta e-mails no Supabase
             const { count: countEmails } = await supabase
                 .from('newsletter_inscritos')
                 .select('*', { count: 'exact', head: true });
 
-            // 2. Conta push cadastrados no Supabase
             const { count: countPush } = await supabase
                 .from('push_inscritos')
                 .select('*', { count: 'exact', head: true });
@@ -34,14 +38,12 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
             const totalEmails = countEmails !== null ? countEmails : 0;
             const totalPushBD = countPush !== null ? countPush : 0;
 
-            // Soma total global: E-mails + Push Global do Banco + Base Fixa
             setTotalSeguidores(totalEmails + totalPushBD + BASE_WEB_PUSH);
         } catch (err) {
             console.error('Erro ao buscar contagem global:', err);
         }
     };
 
-    // Busca dados iniciais e verifica status do Push ao carregar a página
     useEffect(() => {
         const inicializar = async () => {
             setTimeout(async () => {
@@ -58,7 +60,6 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
         inicializar();
     }, []);
 
-    // Manipula inscrição e cancelamento de e-mail no Supabase
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!emailInscricao.trim()) return;
@@ -108,7 +109,6 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
         }
     };
 
-    // Alterna Web Push de forma 100% global no Supabase
     const toggleNotificacoesBrowser = async () => {
         // @ts-ignore
         if (window.OneSignal) {
@@ -117,15 +117,12 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                 const isOptedIn = window.OneSignal.User.PushSubscription.optedIn;
 
                 if (isOptedIn) {
-                    // Desativar Notificações
                     // @ts-ignore
                     const subscriptionId = window.OneSignal.User.PushSubscription.id;
-
                     // @ts-ignore
                     await window.OneSignal.User.PushSubscription.optOut();
                     setPushAtivo(false);
 
-                    // Remove do Supabase para decrementar globalmente
                     if (subscriptionId) {
                         await supabase
                             .from('push_inscritos')
@@ -135,13 +132,11 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
 
                     alert('🔔 Notificações do navegador desativadas.');
                 } else {
-                    // Ativar Notificações
                     // @ts-ignore
                     await window.OneSignal.Notifications.requestPermission();
                     // @ts-ignore
                     await window.OneSignal.User.PushSubscription.optIn();
 
-                    // 🌟 Aguarda um instante para garantir que o OneSignal gerou o ID do dispositivo
                     let subscriptionId = null;
                     for (let i = 0; i < 5; i++) {
                         // @ts-ignore
@@ -150,7 +145,6 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                         await new Promise((res) => setTimeout(res, 500));
                     }
 
-                    // Salva no Supabase para contar globalmente para todos os usuários
                     if (subscriptionId) {
                         await supabase
                             .from('push_inscritos')
@@ -160,13 +154,43 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                     setPushAtivo(true);
                 }
 
-                // Recarrega o contador global
                 await recarregarContagem();
             } catch (err) {
                 console.error('Erro no OneSignal:', err);
             }
         } else {
             alert('O sistema de notificações ainda está carregando.');
+        }
+    };
+
+    // 🌟 Função para disparar a newsletter via Supabase Edge Function
+    const handleEnviarNewsletter = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!assuntoEmail.trim() || !corpoMensagem.trim()) return;
+
+        if (!confirm('Tem certeza que deseja disparar este e-mail para todos os inscritos?')) return;
+
+        setEnviandoNewsletter(true);
+        try {
+            const { error } = await supabase.functions.invoke('enviar-newsletter', {
+                body: {
+                    assunto: assuntoEmail,
+                    mensagem: corpoMensagem,
+                    linkObra: linkObra,
+                },
+            });
+
+            if (error) throw error;
+
+            alert('🎉 E-mails disparados com sucesso para toda a lista!');
+            setAssuntoEmail('');
+            setCorpoMensagem('');
+            setLinkObra('');
+        } catch (err) {
+            console.error('Erro ao enviar newsletter:', err);
+            alert('❌ Erro ao enviar os e-mails. Verifique o console.');
+        } finally {
+            setEnviandoNewsletter(false);
         }
     };
 
@@ -203,7 +227,6 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                     </button>
                 </div>
 
-                {/* CONTADOR / PROVA SOCIAL */}
                 {totalSeguidores !== null && (
                     <div className="flex items-center gap-1.5 px-2 py-1 bg-violet-50/70 border border-violet-100 rounded-lg w-fit">
                         <span className="text-[11px]">👥</span>
@@ -219,7 +242,6 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                         : 'Receba avisos de novas obras em primeira mão!'}
                 </p>
 
-                {/* Formulário de E-mail */}
                 <form onSubmit={handleEmailSubmit} className="flex flex-col gap-1.5">
                     <input
                         type="email"
@@ -249,7 +271,6 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                     <p className="text-[10px] font-medium text-center text-violet-700">{mensagemInscricao}</p>
                 )}
 
-                {/* Botão de Notificações do Navegador / Celular */}
                 <button
                     type="button"
                     onClick={toggleNotificacoesBrowser}
@@ -261,6 +282,47 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                     <span>📱</span> {pushAtivo ? 'Desativar Push' : 'Ativar Push no Celular/PC'}
                 </button>
             </div>
+
+            {/* 🌟 PAINEL DO MODO ADMIN (Exibido apenas quando isAdmin for true) */}
+            {isAdmin && (
+                <div className="mt-4 p-3.5 bg-violet-50 rounded-2xl border border-violet-200 flex flex-col gap-2.5">
+                    <span className="font-bold text-xs text-violet-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>⚙️</span> Painel do Artista (Disparo)
+                    </span>
+                    <form onSubmit={handleEnviarNewsletter} className="flex flex-col gap-2">
+                        <input
+                            type="text"
+                            placeholder="Assunto do E-mail"
+                            value={assuntoEmail}
+                            onChange={(e) => setAssuntoEmail(e.target.value)}
+                            className="text-xs p-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            required
+                        />
+                        <textarea
+                            placeholder="Mensagem da nova obra ou publicação..."
+                            value={corpoMensagem}
+                            onChange={(e) => setCorpoMensagem(e.target.value)}
+                            rows={3}
+                            className="text-xs p-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+                            required
+                        />
+                        <input
+                            type="url"
+                            placeholder="Link da obra (opcional)"
+                            value={linkObra}
+                            onChange={(e) => setLinkObra(e.target.value)}
+                            className="text-xs p-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                        />
+                        <button
+                            type="submit"
+                            disabled={enviandoNewsletter}
+                            className="text-xs font-bold py-2 rounded-xl bg-violet-700 hover:bg-violet-800 transition cursor-pointer shadow-sm text-white disabled:opacity-50"
+                        >
+                            {enviandoNewsletter ? 'Disparando...' : '🚀 Disparar para Todos'}
+                        </button>
+                    </form>
+                </div>
+            )}
 
             <div className="mt-6 lg:mt-auto pt-4 border-t border-gray-300/80 text-center flex flex-col gap-3">
                 <div>
