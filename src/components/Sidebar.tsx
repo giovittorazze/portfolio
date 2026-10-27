@@ -57,17 +57,40 @@ export function Sidebar({
             try {
                 // @ts-ignore
                 const OneSignal = window.OneSignal;
-
-                if (OneSignal.Notifications) {
-                    await OneSignal.Notifications.requestPermission();
-                }
-
                 // @ts-ignore
-                if (OneSignal.User && OneSignal.User.PushSubscription) {
-                    // @ts-ignore
-                    await OneSignal.User.PushSubscription.optIn();
+                const isOptedIn = OneSignal.User.PushSubscription.optedIn;
+
+                if (isOptedIn || pushAtivo) {
+                    // 🔕 DESATIVAR NOTIFICAÇÕES (OPT-OUT)
                     // @ts-ignore
                     const subscriptionId = OneSignal.User.PushSubscription.id;
+                    // @ts-ignore
+                    await OneSignal.User.PushSubscription.optOut();
+                    setPushAtivo(false);
+
+                    if (subscriptionId) {
+                        await supabase
+                            .from('push_inscritos')
+                            .delete()
+                            .eq('subscription_id', subscriptionId);
+                    }
+
+                    alert('🔔 Notificações do navegador desativadas.');
+                } else {
+                    // 🔔 ATIVAR NOTIFICAÇÕES (OPT-IN)
+                    if (OneSignal.Notifications) {
+                        await OneSignal.Notifications.requestPermission();
+                    }
+                    // @ts-ignore
+                    await OneSignal.User.PushSubscription.optIn();
+
+                    let subscriptionId = null;
+                    for (let i = 0; i < 5; i++) {
+                        // @ts-ignore
+                        subscriptionId = OneSignal.User.PushSubscription.id;
+                        if (subscriptionId) break;
+                        await new Promise((res) => setTimeout(res, 500));
+                    }
 
                     if (subscriptionId) {
                         await supabase
@@ -75,13 +98,13 @@ export function Sidebar({
                             .upsert([{ subscription_id: subscriptionId }], { onConflict: 'subscription_id' });
                     }
                     setPushAtivo(true);
+                    alert('🎉 Notificações ativadas com sucesso!');
                 }
 
-                alert('🎉 Notificações ativadas com sucesso!');
                 await recarregarContagem();
             } catch (err: any) {
                 console.error('Erro detalhado no OneSignal:', err);
-                alert('Erro ao ativar notificações: ' + (err.message || err));
+                alert('Erro ao alterar as notificações: ' + (err.message || err));
             }
         } else {
             // 🍏 Deteta se é iPhone / iPad / iPod
@@ -91,7 +114,7 @@ export function Sidebar({
                 alert(
                     '📱 Como ativar as Notificações no iPhone:\n\n' +
                     '1. Certifique-se de que está a abrir o site no navegador Safari.\n' +
-                    '2. Toque no botão "..." em seguida Toque no botão de "Compartilhar" (quadrado com seta para cima) na barra inferior.\n' +
+                    '2. Toque no botão de "Partilhar" (quadrado com seta para cima) na barra inferior.\n' +
                     '3. Escolha a opção "Adicionar à Tela de Início".\n' +
                     '4. Feche o Safari, abra o site pelo novo ícone que apareceu no seu ecrã inicial e clique novamente em ativar notificações!'
                 );
@@ -128,10 +151,11 @@ export function Sidebar({
                 <button
                     type="button"
                     onClick={toggleNotificacoesBrowser}
-                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${pushAtivo
-                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-200'
+                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
+                        pushAtivo 
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-200' 
                             : 'bg-violet-600 text-white hover:bg-violet-700'
-                        }`}
+                    }`}
                 >
                     <span>{pushAtivo ? '🔔 Notificações Ativadas' : '🔔 Ativar Notificações Push'}</span>
                 </button>

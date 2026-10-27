@@ -96,7 +96,6 @@ export function Header({
                 </span>
               )}
             </button>
-
           )}
 
           {usuario ? (
