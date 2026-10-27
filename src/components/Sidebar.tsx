@@ -53,58 +53,51 @@ export function Sidebar({
 
     const toggleNotificacoesBrowser = async () => {
         // @ts-ignore
-        if (window.OneSignal && window.OneSignal.User) {
+        if (typeof window.OneSignal !== 'undefined' && window.OneSignal.User) {
             try {
                 // @ts-ignore
-                const isOptedIn = window.OneSignal.User.PushSubscription.optedIn;
+                const OneSignal = window.OneSignal;
 
-                if (isOptedIn) {
-                    // @ts-ignore
-                    const subscriptionId = window.OneSignal.User.PushSubscription.id;
-                    // @ts-ignore
-                    await window.OneSignal.User.PushSubscription.optOut();
-                    setPushAtivo(false);
+                if (OneSignal.Notifications) {
+                    await OneSignal.Notifications.requestPermission();
+                }
 
-                    if (subscriptionId) {
-                        await supabase
-                            .from('push_inscritos')
-                            .delete()
-                            .eq('subscription_id', subscriptionId);
-                    }
-
-                    alert('🔔 Notificações do navegador desativadas.');
-                } else {
+                // @ts-ignore
+                if (OneSignal.User && OneSignal.User.PushSubscription) {
                     // @ts-ignore
-                    await window.OneSignal.Notifications.requestPermission();
+                    await OneSignal.User.PushSubscription.optIn();
                     // @ts-ignore
-                    await window.OneSignal.User.PushSubscription.optIn();
-
-                    let subscriptionId = null;
-                    for (let i = 0; i < 5; i++) {
-                        // @ts-ignore
-                        subscriptionId = window.OneSignal.User.PushSubscription.id;
-                        if (subscriptionId) break;
-                        await new Promise((res) => setTimeout(res, 500));
-                    }
+                    const subscriptionId = OneSignal.User.PushSubscription.id;
 
                     if (subscriptionId) {
                         await supabase
                             .from('push_inscritos')
                             .upsert([{ subscription_id: subscriptionId }], { onConflict: 'subscription_id' });
                     }
-
                     setPushAtivo(true);
-                    alert('🎉 Notificações ativadas com sucesso!');
                 }
 
+                alert('🎉 Notificações ativadas com sucesso!');
                 await recarregarContagem();
-            } catch (err) {
-                console.error('Erro no OneSignal:', err);
-                alert('Erro ao alterar as notificações.');
+            } catch (err: any) {
+                console.error('Erro detalhado no OneSignal:', err);
+                alert('Erro ao ativar notificações: ' + (err.message || err));
             }
         } else {
-            // Feedback imediato caso o OneSignal não esteja carregado ou configurado no ambiente local
-            alert('⚠️ O serviço de notificações Push (OneSignal) não foi detectado neste ambiente. (Funcionalidade ativa no ambiente de produção/Vercel).');
+            // 🍏 Deteta se é iPhone / iPad / iPod
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+            if (isIOS) {
+                alert(
+                    '📱 Como ativar as Notificações no iPhone:\n\n' +
+                    '1. Certifique-se de que está a abrir o site no navegador Safari.\n' +
+                    '2. Toque no botão de "Partilhar" (quadrado com seta para cima) na barra inferior.\n' +
+                    '3. Escolha a opção "Adicionar à Tela de Início".\n' +
+                    '4. Feche o Safari, abra o site pelo novo ícone que apareceu no seu ecrã inicial e clique novamente em ativar notificações!'
+                );
+            } else {
+                alert('⚠️ O serviço de notificações Push (OneSignal) não está ativo neste momento (normal em ambiente local/localhost). Em produção na Vercel funcionará normalmente.');
+            }
         }
     };
 
@@ -123,7 +116,7 @@ export function Sidebar({
                 <p>Este é o meu espaço para compartilhar minhas obras, bastidores e novidades. Sinta-se à vontade para explorar e acompanhar meu trabalho!</p>
             </div>
 
-            {/* 🌟 CARD ÚNICO: COMUNIDADE + BOTÃO DE NOTIFICAÇÕES */}
+            {/* CARD ÚNICO: COMUNIDADE + BOTÃO DE NOTIFICAÇÕES */}
             <div className="mt-4 p-3.5 bg-violet-50/90 rounded-2xl border border-violet-100 flex flex-col gap-3 shadow-xs text-center">
                 <div>
                     <span className="text-xs font-bold text-violet-900 block">👥 Comunidade de Seguidores</span>
