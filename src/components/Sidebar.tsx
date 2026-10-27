@@ -91,7 +91,7 @@ export function Sidebar({
                 alert(
                     '📱 Como ativar as Notificações no iPhone:\n\n' +
                     '1. Certifique-se de que está a abrir o site no navegador Safari.\n' +
-                    '2. Toque no botão de "Partilhar" (quadrado com seta para cima) na barra inferior.\n' +
+                    '2. Toque no botão "..." em seguida Toque no botão de "Compartilhar" (quadrado com seta para cima) na barra inferior.\n' +
                     '3. Escolha a opção "Adicionar à Tela de Início".\n' +
                     '4. Feche o Safari, abra o site pelo novo ícone que apareceu no seu ecrã inicial e clique novamente em ativar notificações!'
                 );
@@ -128,11 +128,10 @@ export function Sidebar({
                 <button
                     type="button"
                     onClick={toggleNotificacoesBrowser}
-                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
-                        pushAtivo 
-                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-200' 
+                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${pushAtivo
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-200'
                             : 'bg-violet-600 text-white hover:bg-violet-700'
-                    }`}
+                        }`}
                 >
                     <span>{pushAtivo ? '🔔 Notificações Ativadas' : '🔔 Ativar Notificações Push'}</span>
                 </button>

@@ -81,21 +81,24 @@ export function Header({
         <div className="flex items-center gap-2 sm:gap-3">
 
           {/* BOTÃO DO CARRINHO */}
-          <button
-            onClick={onOpenCarrinho}
-            className="relative w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 transition cursor-pointer backdrop-blur-xs flex items-center justify-center border border-white/40 hover:border-white shadow-sm"
-            title="Ver Sacola de Compras"
-          >
-            <span className="text-[18px]">🛒</span>
+          {usuario && (
+            <button
+              onClick={onOpenCarrinho}
+              className="relative w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 transition cursor-pointer backdrop-blur-xs flex items-center justify-center border border-white/40 hover:border-white shadow-sm"
+              title="Ver Sacola de Compras"
+            >
+              <span className="text-[18px]">🛒</span>
 
-            {/* O número aparece aqui se houver itens */}
-            {carrinhoQtd > 0 && (
-              <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-md animate-pulse">
-                {carrinhoQtd}
-              </span>
-            )}
-          </button>
-          
+              {/* O número aparece aqui se houver itens */}
+              {carrinhoQtd > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-md animate-pulse">
+                  {carrinhoQtd}
+                </span>
+              )}
+            </button>
+
+          )}
+
           {usuario ? (
             <div className="flex items-center gap-2">
               {/* FOTO DE PERFIL / BOTÃO DE PERFIL */}
