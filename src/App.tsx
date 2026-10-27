@@ -136,19 +136,24 @@ function App() {
   }, [carrinho]);
 
   const adicionarAoCarrinho = (arte: Arte) => {
-    const estaVendida = arte.vendido || artesVendidasIds.includes(arte.id);
-    if (estaVendida) {
-      alert('Esta obra já foi vendida!');
+    // Se o usuário NÃO estiver logado, bloqueia e abre o modal de autenticação
+    if (!usuario) {
+      alert('🔒 Você precisa estar conectado para adicionar obras ao carrinho!');
+      setModoModal('login');
+      setModalAuthAberto(true);
       return;
     }
 
-    if (carrinho.some(item => item.id === arte.id)) {
-      alert('Esta obra já está na sua sacola!');
-      return;
-    }
-
-    setCarrinho([...carrinho, arte]);
-    alert(`"${arte.alt}" foi adicionada à sua sacola! 🛍️`);
+    // Lógica normal de adicionar ao carrinho caso esteja logado
+    setCarrinho((prevCarrinho) => {
+      // Exemplo: evita duplicados ou apenas adiciona
+      const jaExiste = prevCarrinho.some((item) => item.id === arte.id);
+      if (jaExiste) {
+        alert('Esta obra já está no seu carrinho!');
+        return prevCarrinho;
+      }
+      return [...prevCarrinho, arte];
+    });
   };
 
   const removerDoCarrinho = (id: string) => {
@@ -843,7 +848,7 @@ function App() {
                                 <button
                                   onClick={() => adicionarAoCarrinho(arte)}
                                   className="w-9 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white transition cursor-pointer shadow-sm flex items-center justify-center"
-                                  title="Adicionar à Sacola"
+                                  title="Adicionar ao Carrinho"
                                 >
                                   <span className="text-sm">🛒</span>
                                 </button>
