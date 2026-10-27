@@ -7,18 +7,15 @@ interface SidebarProps {
     toggleAdmin: () => void;
 }
 
-export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
-    const [emailInscricao, setEmailInscricao] = useState('');
-    const [carregandoEmail, setCarregandoEmail] = useState(false);
-    const [mensagemInscricao, setMensagemInscricao] = useState('');
-    const [modoRemoverEmail, setModoRemoverEmail] = useState(false);
+export function Sidebar({
+    isAdmin,
+    toggleAdmin
+}: SidebarProps) {
     const [pushAtivo, setPushAtivo] = useState(false);
     const [totalSeguidores, setTotalSeguidores] = useState<number | null>(null);
 
-    // 🌟 Base fixa de inscritos via Web Push
     const BASE_WEB_PUSH = 0;
 
-    // Função centralizada para buscar a contagem global no Supabase
     const recarregarContagem = async () => {
         try {
             const { count: countEmails } = await supabase
@@ -42,7 +39,7 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
         const inicializar = async () => {
             setTimeout(async () => {
                 // @ts-ignore
-                if (window.OneSignal) {
+                if (window.OneSignal && window.OneSignal.User) {
                     // @ts-ignore
                     const isOptedIn = window.OneSignal.User.PushSubscription.optedIn;
                     setPushAtivo(!!isOptedIn);
@@ -54,58 +51,9 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
         inicializar();
     }, []);
 
-    const handleEmailSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!emailInscricao.trim()) return;
-
-        setCarregandoEmail(true);
-        setMensagemInscricao('');
-
-        try {
-            if (modoRemoverEmail) {
-                const { error, count } = await supabase
-                    .from('newsletter_inscritos')
-                    .delete({ count: 'exact' })
-                    .eq('email', emailInscricao.trim());
-
-                if (error) {
-                    setMensagemInscricao('❌ Erro ao cancelar inscrição.');
-                } else if (count === 0) {
-                    setMensagemInscricao('⚠️ Este e-mail não foi encontrado.');
-                } else {
-                    setMensagemInscricao('✅ Inscrição cancelada com sucesso.');
-                    setEmailInscricao('');
-                    setModoRemoverEmail(false);
-                    await recarregarContagem();
-                }
-            } else {
-                const { error } = await supabase
-                    .from('newsletter_inscritos')
-                    .insert([{ email: emailInscricao.trim() }]);
-
-                if (error) {
-                    if (error.code === '23505') {
-                        setMensagemInscricao('✨ Este e-mail já está cadastrado!');
-                    } else {
-                        setMensagemInscricao('❌ Erro ao se inscrever. Tente novamente.');
-                    }
-                } else {
-                    setMensagemInscricao('🎉 Inscrição realizada com sucesso!');
-                    setEmailInscricao('');
-                    await recarregarContagem();
-                }
-            }
-        } catch (err) {
-            console.error(err);
-            setMensagemInscricao('❌ Erro de conexão.');
-        } finally {
-            setCarregandoEmail(false);
-        }
-    };
-
     const toggleNotificacoesBrowser = async () => {
         // @ts-ignore
-        if (window.OneSignal) {
+        if (window.OneSignal && window.OneSignal.User) {
             try {
                 // @ts-ignore
                 const isOptedIn = window.OneSignal.User.PushSubscription.optedIn;
@@ -146,14 +94,17 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                     }
 
                     setPushAtivo(true);
+                    alert('🎉 Notificações ativadas com sucesso!');
                 }
 
                 await recarregarContagem();
             } catch (err) {
                 console.error('Erro no OneSignal:', err);
+                alert('Erro ao alterar as notificações.');
             }
         } else {
-            alert('O sistema de notificações ainda está carregando.');
+            // Feedback imediato caso o OneSignal não esteja carregado ou configurado no ambiente local
+            alert('⚠️ O serviço de notificações Push (OneSignal) não foi detectado neste ambiente. (Funcionalidade ativa no ambiente de produção/Vercel).');
         }
     };
 
@@ -165,19 +116,39 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                     <p className="text-xs text-gray-500">Olá! Eu sou</p>
                     <h2 className="font-bold text-sm sm:text-base text-gray-900">Giovanni Vittorazze</h2>
                 </div>
-
             </div>
-
 
             <div className="text-xs sm:text-sm text-gray-600 leading-relaxed flex flex-col gap-3">
                 <p>Eu sou um aprendiz da arte, amo o realismo mas estou sempre buscando aprender novas técnicas para expandir minha criatividade.</p>
                 <p>Este é o meu espaço para compartilhar minhas obras, bastidores e novidades. Sinta-se à vontade para explorar e acompanhar meu trabalho!</p>
             </div>
-            
-            <br/>
+
+            {/* 🌟 CARD ÚNICO: COMUNIDADE + BOTÃO DE NOTIFICAÇÕES */}
+            <div className="mt-4 p-3.5 bg-violet-50/90 rounded-2xl border border-violet-100 flex flex-col gap-3 shadow-xs text-center">
+                <div>
+                    <span className="text-xs font-bold text-violet-900 block">👥 Comunidade de Seguidores</span>
+                    <span className="text-sm font-extrabold text-violet-700">
+                        {totalSeguidores !== null ? `${totalSeguidores} pessoas acompanhando` : 'A carregar...'}
+                    </span>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={toggleNotificacoesBrowser}
+                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
+                        pushAtivo 
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-200' 
+                            : 'bg-violet-600 text-white hover:bg-violet-700'
+                    }`}
+                >
+                    <span>{pushAtivo ? '🔔 Notificações Ativadas' : '🔔 Ativar Notificações Push'}</span>
+                </button>
+            </div>
+
+            <br />
 
             <a
-                href="https://www.instagram.com/giovannivittorazze/" // Altere com o seu usuário exato do Instagram
+                href="https://www.instagram.com/giovannivittorazze/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-rose-700 hover:text-rose-800 bg-rose-50/80 hover:bg-rose-100 py-2 px-4 rounded-xl transition shadow-sm"
@@ -188,86 +159,11 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                 <span>Siga no Instagram</span>
             </a>
 
-            {/* BLOCO DE SEGUIDORES E NOTIFICAÇÕES */}
-            <div className="mt-4 p-3.5 bg-white rounded-2xl shadow-xs border border-violet-100 flex flex-col gap-2.5">
-                <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-violet-900 uppercase tracking-wider flex items-center gap-1.5">
-                        <span>🔔</span> Siga o Atelier
-                    </span>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setModoRemoverEmail(!modoRemoverEmail);
-                            setMensagemInscricao('');
-                        }}
-                        className="text-[10px] text-violet-600 hover:underline"
-                    >
-                        {modoRemoverEmail ? 'Voltar' : 'Cancelar e-mail?'}
-                    </button>
-                </div>
-
-                {totalSeguidores !== null && (
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-violet-50/70 border border-violet-100 rounded-lg w-fit">
-                        <span className="text-[11px]">👥</span>
-                        <span className="text-[11px] font-semibold text-violet-900">
-                            {totalSeguidores} {totalSeguidores === 1 ? 'seguidor' : 'seguidores'}
-                        </span>
-                    </div>
-                )}
-
-                <p className="text-[11px] text-gray-500 leading-tight">
-                    {modoRemoverEmail
-                        ? 'Digite seu e-mail para remover da lista.'
-                        : 'Receba avisos de novas obras em primeira mão!'}
-                </p>
-
-                <form onSubmit={handleEmailSubmit} className="flex flex-col gap-1.5">
-                    <input
-                        type="email"
-                        placeholder="Seu melhor e-mail"
-                        value={emailInscricao}
-                        onChange={(e) => setEmailInscricao(e.target.value)}
-                        className="text-xs p-2 rounded-xl border border-gray-300 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                        required
-                    />
-                    <button
-                        type="submit"
-                        disabled={carregandoEmail}
-                        className={`text-xs font-bold py-2 rounded-xl transition cursor-pointer shadow-sm disabled:opacity-50 text-white ${modoRemoverEmail
-                            ? 'bg-rose-600 hover:bg-rose-700'
-                            : 'bg-violet-600 hover:bg-violet-700'
-                            }`}
-                    >
-                        {carregandoEmail
-                            ? 'Processando...'
-                            : modoRemoverEmail
-                                ? '🚫 Confirmar Remoção'
-                                : '📧 Receber por E-mail'}
-                    </button>
-                </form>
-
-                {mensagemInscricao && (
-                    <p className="text-[10px] font-medium text-center text-violet-700">{mensagemInscricao}</p>
-                )}
-
-                <button
-                    type="button"
-                    onClick={toggleNotificacoesBrowser}
-                    className={`flex items-center justify-center gap-1.5 py-1.5 px-3 text-[11px] font-semibold rounded-xl transition cursor-pointer border ${pushAtivo
-                        ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                        : 'bg-violet-50 text-violet-800 border-violet-200/60 hover:bg-violet-100'
-                        }`}
-                >
-                    <span>📱</span> {pushAtivo ? 'Desativar Push' : 'Ativar Push no Celular/PC'}
-                </button>
-            </div>
-
-            {/* MODO ADMIN APENAS INFORMATIVO */}
             {isAdmin && (
                 <div className="mt-4 p-3 bg-violet-50 rounded-2xl border border-violet-200 text-xs text-violet-900">
                     <p className="font-bold mb-1">⚙️ Modo Admin Ativo</p>
                     <p className="text-[11px] text-violet-700">
-                        Para disparar e-mails para a lista, exporte a tabela <code className="bg-violet-100 px-1 rounded">newsletter_inscritos</code> do Supabase em formato CSV e importe na plataforma de e-mail marketing.
+                        Para disparar e-mails para a lista, exporte a tabela <code className="bg-violet-100 px-1 rounded">newsletter_inscritos</code> do Supabase em formato CSV.
                     </p>
                 </div>
             )}
@@ -284,12 +180,12 @@ export function Sidebar({ isAdmin, toggleAdmin }: SidebarProps) {
                     </a>
                 </div>
 
-                <div className="pt-3 flex flex-col gap-2">
+                <div className="pt-3 flex flex-col gap-2 border-t border-gray-300/65">
                     <button onClick={toggleAdmin} className="text-[10px] text-gray-400 hover:text-gray-600 underline cursor-pointer">
                         {isAdmin ? '🔓 Desativar Modo Admin' : '🔒 Áreas do Artista'}
                     </button>
 
-                    <div className="text-[10px] text-gray-400 pt-2 border-t border-gray-300/60 leading-tight">
+                    <div className="text-[10px] text-gray-400 pt-1 leading-tight">
                         &copy; {new Date().getFullYear()} Giovanni Vittorazze. <br />
                         Obras únicas e autorais. Todos os direitos reservados.
                     </div>
