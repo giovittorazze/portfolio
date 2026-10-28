@@ -142,20 +142,21 @@ export function Sidebar({
             {/* CARD ÚNICO: COMUNIDADE + BOTÃO DE NOTIFICAÇÕES */}
             <div className="mt-4 p-3.5 bg-violet-50/90 rounded-2xl border border-violet-100 flex flex-col gap-3 shadow-xs text-center">
                 <div>
-                    <span className="text-xs font-bold text-violet-900 block">👥 Comunidade de Seguidores</span>
-                    <span className="text-sm font-extrabold text-violet-700">
-                        {totalSeguidores !== null ? `${totalSeguidores} pessoas acompanhando` : 'A carregar...'}
+                    <span className="text-xs font-bold text-violet-900 block">👥 NOTIFICAÇÕES</span>
+                    <span className="text-[12px] text-violet-800">
+                        <p>
+                            Para receber novidades, bastidores e lançamentos de obras em primeira mão. <br />
+                        </p>
                     </span>
                 </div>
 
                 <button
                     type="button"
                     onClick={toggleNotificacoesBrowser}
-                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
-                        pushAtivo 
-                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-200' 
-                            : 'bg-violet-600 text-white hover:bg-violet-700'
-                    }`}
+                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${pushAtivo
+                        ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-200'
+                        : 'bg-violet-600 text-white hover:bg-violet-700'
+                        }`}
                 >
                     <span>{pushAtivo ? '🔔 Notificações Ativadas' : '🔔 Ativar Notificações Push'}</span>
                 </button>
